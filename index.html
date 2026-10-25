@@ -1,0 +1,1762 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>あにてろ</title>
+<link rel="preload" href="fonts/biz-udpgothic-bold.woff" as="font" type="font/woff" crossorigin>
+<style>
+/* Fonts ship in the fonts folder so the telop looks the same offline. Every face is registered at the weight it
+   really has, so the browser never fakes a bolder version (fake bold is what made heavy kanji clump together). */
+@font-face{font-family:"AT BIZ UDPGothic";src:url("fonts/biz-udpgothic-bold.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT Noto Sans JP";src:url("fonts/noto-sans-jp-bold.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT M PLUS Rounded";src:url("fonts/mplus-rounded-1c-extrabold.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT M PLUS 1p";src:url("fonts/mplus-1p-extrabold.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT Dela Gothic One";src:url("fonts/dela-gothic-one.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT Zen Kaku Gothic";src:url("fonts/zen-kaku-gothic-new-bold.woff") format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"AT Chakra Petch";src:url("fonts/chakra-petch-bold.woff") format("woff");font-weight:400 900;font-display:swap}
+</style>
+<style>
+html,body{margin:0}
+[hidden]{display:none!important}
+/* Layout: operator console (DB list + setlist) beside a live 16:9 stage preview; the stage goes fullscreen for the venue screen. Deliberately dark-only: it runs in a dark booth and on a projector. */
+:root{
+  color-scheme: dark;
+  --night:#0a0c13;      /* page */
+  --panel:#121521;      /* console surfaces */
+  --raise:#1a1e2d;      /* inputs, rows on hover */
+  --line:#272d40;       /* hairlines */
+  --ink:#eceef5;        /* text */
+  --mute:#8b92a8;       /* secondary text */
+  --sun:#ffb21a;        /* telop gradient start */
+  --flare:#ff4d6d;      /* telop gradient end */
+  --live:#3ee08f;       /* on-air state */
+  --danger:#ff6b6b;
+  --f-display:"AT Dela Gothic One","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;
+  --f-body:"Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+  --f-tag:"AT Chakra Petch","Bahnschrift","Segoe UI","Yu Gothic UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+
+.app{padding-left:16px;padding-right:16px;display:flex;flex-direction:column;gap:14px;padding-block:14px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1920px;margin:0 auto}
+header.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+.brand i{display:inline-block;width:22px;height:14px;background:linear-gradient(90deg,var(--sun),var(--flare));clip-path:polygon(0 0,100% 0,82% 100%,0 100%)}
+.status{font-family:var(--f-tag);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.status.cloud{color:var(--live);border-color:color-mix(in srgb,var(--live) 40%,transparent)}
+.spacer{flex:1}
+.kbd{font-family:var(--f-tag);font-size:11px;color:var(--mute)}
+.kbd b{display:inline-block;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;margin:0 2px;color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1280px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-rows:auto 1fr}.colL{grid-row:1/span 2}.colM{grid-column:2;grid-row:1}.colR{grid-column:2;grid-row:2}}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}.colL,.colM,.colR{grid-column:auto;grid-row:auto}}
+#histCard.fit .set.hist{flex:1 1 0;min-height:0;max-height:none}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{margin:0;font-size:12px;font-family:var(--f-tag);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600;display:flex;align-items:center;gap:8px}
+.card h2 .count{color:var(--ink);font-variant-numeric:tabular-nums}
+.card h2 .act{margin-left:auto;display:flex;gap:6px;text-transform:none;letter-spacing:0;font-family:var(--f-body)}
+
+.search{position:relative}
+.search input{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:11px 12px 11px 38px;font-size:16px}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--mute);fill:none;stroke-width:2}
+.hint{font-size:12px;color:var(--mute);margin:0}
+
+#dbCard{height:420px}
+#dbCard .list{flex:1 1 0;min-height:0;max-height:none}
+.list{display:flex;flex-direction:column;max-height:430px;overflow:auto;border-top:1px solid var(--line);margin:0 -14px;scrollbar-width:thin}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:hover{background:var(--raise)}
+.row.sel{background:color-mix(in srgb,var(--sun) 12%,var(--panel));box-shadow:inset 3px 0 0 var(--sun)}
+.row .t{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .m{font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .btns{display:flex;gap:4px}
+.tag{font-family:var(--f-tag);font-size:10.5px;font-weight:600;letter-spacing:.06em;padding:1px 6px;border-radius:3px;background:var(--raise);color:var(--ink);border:1px solid var(--line);margin-right:6px}
+.empty{padding:26px 14px;text-align:center;color:var(--mute);font-size:13px}
+
+.btn{background:var(--raise);border:1px solid var(--line);border-radius:7px;padding:7px 12px;font-size:13px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--mute)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.icon{padding:4px 7px;line-height:1}
+.btn.primary{background:linear-gradient(90deg,var(--sun),var(--flare));border:0;color:#16080d;font-weight:700}
+.btn.live{background:var(--live);border:0;color:#04170c;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* stage */
+.stagebox{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.stage{position:absolute;inset:0;container-type:size;background:#000;overflow:hidden}
+.stage.bg-green{background:#00b140}
+.stage.bg-blue{background:#0047bb}
+.stage.bg-grad{background:radial-gradient(120% 90% at 85% 10%,#2a1b3d 0%,#0d0f1a 55%,#05060a 100%)}
+.onair{position:absolute;top:8px;left:8px;z-index:6;font-family:var(--f-tag);font-size:10px;letter-spacing:.14em;padding:2px 7px;border-radius:3px;background:rgba(0,0,0,.6);color:var(--mute)}
+.onair.on{background:var(--live);color:#04170c}
+
+.telop{position:absolute;left:5cqw;right:5cqw;bottom:7cqh;display:flex;flex-direction:column;align-items:flex-start;gap:1.1cqh;pointer-events:none;isolation:isolate;perspective:120cqw;z-index:2}
+.telop .band{display:none!important}
+/* effects layer: kept empty on purpose (the background is composited with other video) */
+/* notice (static, no motion) */
+.presets{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.presets .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.presets .btn small{color:var(--mute);margin-left:6px;font-weight:400}
+.presets .btn.on small{color:#04170c}
+.announce{position:absolute;left:0;right:0;z-index:4;display:flex;justify-content:center;pointer-events:none}
+.announce.pos-top{top:5cqh}.announce.pos-bottom{bottom:5cqh}.announce.pos-center{top:50%;transform:translateY(-50%)}
+.announce .ap{box-sizing:border-box;white-space:nowrap;max-width:94cqw;padding:1.1cqh 2.4cqw;border-radius:.8cqw;background:rgba(6,7,12,.8);color:#fff;font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(3.2cqw * var(--as,1));line-height:1.4;letter-spacing:.03em}
+.announce.nopanel .ap{background:transparent;text-shadow:0 0 .14em rgba(0,0,0,.75),0 .15cqw .5cqw rgba(0,0,0,.8)}
+.notice{position:absolute;inset:0;z-index:5;display:grid;place-items:center;pointer-events:none}
+.notice .np{box-sizing:border-box;max-width:86cqw;max-height:88cqh;overflow:hidden;padding:3.4cqh 4.2cqw;border-radius:1.2cqw;background:rgba(6,7,12,.8);color:#fff;font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(2.8cqw * var(--ns,1));line-height:1.55;letter-spacing:.02em}
+.notice.nopanel .np{background:transparent;text-shadow:0 0 .14em rgba(0,0,0,.75),0 .15cqw .5cqw rgba(0,0,0,.8)}
+.notice h3{margin:0 0 .7em;text-align:center;font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:1.45em;line-height:1.3;color:#fff}
+.notice h3:empty{display:none}
+.notice ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.45em}
+.notice li{padding-left:1.1em;text-indent:-1.1em}
+.notice li::before{content:"・";display:inline-block;width:1.1em;text-indent:0;color:var(--sun)}
+.notice.plain li{padding-left:0;text-indent:0}.notice.plain li::before{content:none}
+.stage.noticing .telop,.stage.noticing .intro{visibility:hidden}
+.intro{position:absolute;inset:0;z-index:3;display:grid;place-items:center;pointer-events:none;opacity:0}
+.intro .ib{display:flex;flex-direction:column;gap:2.4cqh;max-width:80cqw}
+.intro .ir{display:flex;flex-direction:column;gap:.5cqh}.intro .ir[hidden]{display:none}
+.intro .k{font-family:var(--f-tag),sans-serif;font-weight:400;font-size:2.3cqw;letter-spacing:.08em;color:var(--sun);text-shadow:0 0 .2em rgba(0,0,0,.7)}
+.intro .v{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(3.6cqw * var(--ws,1));line-height:1.3;color:#fff;overflow-wrap:anywhere;text-wrap:pretty;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
+.intro .v.t{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(5.2cqw * var(--ts,1));line-height:1.2}
+.outstat{font-family:var(--f-body);font-size:11.5px;color:var(--mute);align-self:center;margin-right:4px}
+.outstat.ok{color:var(--live)}
+/* output window: only the stage, filling the window */
+body.output{overflow:hidden;cursor:default}
+body.output .app,body.output .toast{display:none!important}
+body.output .stagebox.full .exitfs{display:none!important}
+body.output.idlecursor{cursor:none}
+.outhint{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;max-width:min(92vw,760px);background:rgba(10,12,19,.92);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.6;color:var(--ink);text-align:center}
+.outhint b{color:var(--sun)}
+.btn.on{background:var(--live);border-color:var(--live);color:#04170c;font-weight:700}
+.noticeEd textarea{min-height:150px;font-family:inherit;font-size:13.5px;line-height:1.6}
+.fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.fx>div{position:absolute;will-change:transform,opacity}
+.telop .band{position:absolute;left:-5cqw;right:auto;bottom:-2.2cqh;top:-2.4cqh;width:calc(100% + 18cqw);transform:scaleX(0);transform-origin:left center;background:linear-gradient(90deg,rgba(6,7,12,.86) 0%,rgba(6,7,12,.78) 70%,rgba(6,7,12,0) 100%);z-index:-1;overflow:hidden}
+.telop .chip{display:none!important}
+.telop .meta{display:flex;align-items:center;gap:1.2cqw;opacity:0}
+.telop .chip{font-family:var(--f-tag);font-weight:400;font-size:2.1cqw;letter-spacing:.1em;color:#16080d;background:linear-gradient(90deg,var(--sun),var(--flare));padding:.25cqw 1.1cqw;clip-path:polygon(0 0,100% 0,calc(100% - .9cqw) 100%,0 100%);padding-right:1.6cqw}
+.stage{--tf:"AT BIZ UDPGothic";--sf:"AT BIZ UDPGothic"}
+.stage[data-font="noto"]{--tf:"AT Noto Sans JP";--sf:"AT Noto Sans JP"}
+.stage[data-font="round"]{--tf:"AT M PLUS Rounded";--sf:"AT M PLUS Rounded"}
+.stage[data-font="mplus"]{--tf:"AT M PLUS 1p";--sf:"AT M PLUS 1p"}
+.stage[data-font="dela"]{--tf:"AT Dela Gothic One";--sf:"AT Zen Kaku Gothic"}
+.telop .work{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(3.8cqw * var(--ws,1));line-height:1.25;letter-spacing:.02em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
+.telop .title{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(5.2cqw * var(--ts,1));line-height:1.18;letter-spacing:.03em;color:#fff;text-wrap:balance;max-width:88cqw;text-shadow:0 0 .12em rgba(0,0,0,.55),0 .2cqw .7cqw rgba(0,0,0,.65);opacity:0}
+.telop .artist{display:flex;align-items:center;gap:1.2cqw;font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:2.9cqw;letter-spacing:.03em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75);opacity:0}
+.telop .artist::before{content:"";width:5cqw;height:.45cqw;background:linear-gradient(90deg,var(--sun),var(--flare))}
+
+/* center layout */
+.stage.lay-center .telop{left:8cqw;right:8cqw;bottom:auto;top:50%;transform:translateY(-50%);align-items:center;text-align:center;gap:1.8cqh}
+.stage.lay-center .telop .band{left:-8cqw;right:-8cqw;width:auto;top:-5cqh;bottom:-5cqh;background:rgba(6,7,12,.72);transform:scaleY(0);transform-origin:center}
+.stage.lay-center .telop .title{font-size:calc(6.4cqw * var(--ts,1))}
+.stage.lay-center .telop .work{font-size:calc(4.2cqw * var(--ws,1))}
+.stage.lay-center .telop .artist::after{content:"";width:5cqw;height:.45cqw;background:linear-gradient(90deg,var(--flare),var(--sun))}
+
+/* animation: patterns are driven from script (Web Animations); these are the shared pieces */
+.telop .title .w,.telop .title .ch{display:inline-block;white-space:pre}
+.telop .title.caret::after{content:"";display:inline-block;width:.07em;height:.85em;margin-left:.08em;vertical-align:-.04em;background:var(--sun);animation:blink .55s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.telop .band::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.13) 50%,transparent 65%);background-size:300% 100%;background-position:120% 0;opacity:0}
+.telop.live .band::after{opacity:1;animation:shine 5s .8s ease-in-out infinite}
+@keyframes shine{0%{background-position:120% 0}40%,100%{background-position:-20% 0}}
+.telop.live .chip{animation:chipglow 2.6s ease-in-out infinite}
+.telop.live .artist::before,.telop.live .artist::after{animation:linegrow 1.8s ease-in-out infinite alternate}
+.telop .artist::before{transform-origin:right center}.telop .artist::after{transform-origin:left center}
+@keyframes linegrow{from{transform:scaleX(1)}to{transform:scaleX(1.7)}}
+.telop.soft .band::after{animation-duration:8s}.telop.soft .artist::before,.telop.soft .artist::after{animation-duration:3s}
+@keyframes chipglow{50%{filter:brightness(1.18) saturate(1.1)}}
+/* resting preview in the console: faint example so the operator sees the layout */
+.stagebox:not(.full) .telop.ghost .band{transform:none;opacity:.5}
+
+/* motion pieces */
+.telop .title{background:linear-gradient(var(--sun),var(--sun)) no-repeat left bottom/0% .09em;padding-bottom:.08em}
+.stage.lay-center .telop .title{background-position:center bottom}
+.telop .title.ucur::after,.telop .work.cur::after,.stage .telop .artist.cur::after{content:"_";display:inline;width:auto;height:auto;background:none;color:var(--sun);margin-left:.08em;animation:blink .55s steps(1) infinite}
+.stage .telop.term .meta::before,.stage .telop.term .title::before,.stage .telop.term .artist::before{content:">";display:inline-block;width:auto;height:auto;background:none;color:var(--sun);margin-right:.5em;animation:none;transform:none}
+.stage .telop.term .artist:not(.cur)::after{content:none}
+.stage .telop.term .meta::before{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(3.8cqw * var(--ws,1));margin-right:-.7cqw}
+.stage.lay-center .telop.term .meta::before{font-size:calc(4.2cqw * var(--ws,1))}
+.fx .card{background:rgba(8,9,14,.84);border-left:.55cqw solid var(--sun);box-shadow:0 1cqw 3cqw rgba(0,0,0,.35);transform:scaleX(0)}
+/* announcement: red label */
+.announce .ap{background:#d71e2b;border-radius:.3cqw;box-shadow:0 .4cqw 1.6cqw rgba(0,0,0,.35);padding:1cqh 2.6cqw}
+/* fullscreen / live mode */
+.stagebox.full{position:fixed;inset:0;z-index:50;border:0;border-radius:0;aspect-ratio:auto;background:#000;display:grid;place-items:center}
+.stagebox.full .stage{position:relative;inset:auto;width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16))}
+.stagebox.full .onair{opacity:0}
+.stagebox.full .exitfs{display:block}
+.exitfs{display:none;position:absolute;top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));z-index:4;opacity:0;transition:opacity .2s}
+.stagebox.full:hover .exitfs{opacity:.75}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.arow{display:flex;gap:8px;align-items:stretch}.arow input{flex:1 1 auto;min-width:0}.arow .btn{flex:0 0 auto;white-space:nowrap}
+.settings[hidden]{display:none}
+.pvwrap{display:grid;grid-template-columns:minmax(0,56%) minmax(0,1fr);gap:14px;align-items:end}
+.pvside{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}.pvside .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.pvside .animro{white-space:normal;flex-wrap:wrap;border-radius:12px}
+.pvbox{position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:2px solid var(--sun);background:#000}
+.pvbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;display:block}
+.pvtag{position:absolute;top:6px;left:6px;z-index:2;font-family:var(--f-tag);font-size:13px;font-weight:700;letter-spacing:.16em;padding:4px 12px;border-radius:4px;background:var(--sun);color:#1a1004;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.pvbox.trying .pvtag::after{content:" · 試し再生中"}
+.animro{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);color:var(--ink);cursor:default;user-select:none;white-space:nowrap}
+.animro i{font-style:normal;color:var(--mute)}.animro b{font-weight:600}.animro small{color:var(--mute);font-weight:400}
+.telop.still .meta,.telop.still .title,.telop.still .artist{opacity:1}
+body.preview .stagebox.full .onair{display:none}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11.5px;color:var(--mute)}
+.manual{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.manual .wide{grid-column:1/-1}
+@media (max-width:520px){.manual{grid-template-columns:minmax(0,1fr)}}
+.empty .btn{margin-top:10px}
+.field input,.field select,.field textarea{background:var(--raise);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0;width:100%}
+.field textarea{min-height:120px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;resize:vertical}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.form .wide{grid-column:1/-1}
+@media (max-width:520px){.form{grid-template-columns:minmax(0,1fr)}}
+
+.set{display:flex;flex-direction:column;gap:0;margin:0 -14px;border-top:1px solid var(--line);max-height:300px;overflow:auto}
+.set.hist .row{grid-template-columns:28px 52px minmax(0,1fr) auto;align-items:center;padding-block:6px}
+.set.hist .line{min-width:0;display:flex;align-items:baseline;gap:1.2em;white-space:nowrap;overflow:hidden}
+.set.hist .line .t{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.set.hist .line .m{flex:0 10 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.hist .tm{font-family:var(--f-tag);font-variant-numeric:tabular-nums;color:var(--mute);font-size:12px}
+.hist .row.last{box-shadow:inset 3px 0 0 var(--live)}
+.hist .row.last .no{color:var(--live)}
+.set .row{grid-template-columns:28px minmax(0,1fr) auto}
+.set .no{font-family:var(--f-tag);font-variant-numeric:tabular-nums;color:var(--mute);font-size:12px}
+.set .row.cur .no{color:var(--live)}
+.set .row.cur{box-shadow:inset 3px 0 0 var(--live)}
+
+details.tool>summary{cursor:pointer;list-style:none;font-size:12px;font-family:var(--f-tag);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600}
+details.tool>summary::-webkit-details-marker{display:none}
+details.tool>summary::after{content:" ＋";color:var(--mute)}
+details.tool[open]>summary::after{content:" －"}
+details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);opacity:0;background:var(--raise);border:1px solid var(--line);padding:9px 16px;border-radius:8px;font-size:13px;z-index:60;transition:.25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+.toast{display:flex;align-items:center;gap:12px}
+.toast .undo{background:transparent;border:1px solid var(--sun);color:var(--sun);border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700}
+.batches{display:flex;flex-direction:column;margin:0 -14px;border-top:1px solid var(--line)}
+.batch{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+.batch .bn{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.batch .bm{font-size:12px;color:var(--mute)}
+.batch .bc{font-family:var(--f-tag);font-variant-numeric:tabular-nums;color:var(--mute);font-size:12px}
+.btn.armed{background:var(--danger);border-color:var(--danger);color:#1a0505;font-weight:700}
+.dangerzone{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:2px}
+.sample{font-family:var(--f-tag);font-size:9.5px;color:var(--sun);border:1px solid color-mix(in srgb,var(--sun) 45%,transparent);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand"><i></i>あにてろ</div>
+    <span class="status" id="status">読み込み中…</span>
+    <span class="kbd" title="アプリのバージョン">V1.4</span>
+    <span class="spacer"></span>
+    <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
+  </header>
+
+  <div class="grid">
+    <div class="col colL">
+      <section class="card" id="dbCard">
+        <h2>曲データベース <span class="count" id="dbCount">0</span>
+          <span class="act"><button class="btn sm ghost" id="reloadBtn" hidden title="Excel などで songs.csv を編集した後に押します">↻ CSV を再読込</button><button class="btn sm" id="newBtn">＋ 新規登録</button></span>
+        </h2>
+        <div class="search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="曲名・読み・アーティスト・作品名で検索" autocomplete="off">
+        </div>
+        <div class="list" id="list"></div>
+      </section>
+
+      <section class="card" id="manualCard">
+        <h2>手入力で表示</h2>
+        <form class="manual" id="manualForm" autocomplete="off">
+          <div class="field wide"><label for="m-title">曲名 *</label><input id="m-title" placeholder="曲名"></div>
+          <div class="field"><label for="m-artist">アーティスト</label><input id="m-artist" placeholder="アーティスト名"></div>
+          <div class="field"><label for="m-work">タイアップ作品</label><input id="m-work" placeholder="作品名"></div>
+          <div class="controls wide">
+            <button class="btn live" type="submit" id="mShowBtn">▶ この内容で表示</button>
+            <button class="btn" type="button" id="mSaveBtn">データベースにも登録</button>
+            <span class="spacer"></span>
+            <button class="btn ghost" type="button" id="mClearBtn">入力を消す</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" id="announceCard">
+        <h2>案内・アナウンス</h2>
+        <div class="presets">
+          <span class="hint">固定の案内</span>
+          <button class="btn preset" type="button" id="p1Btn" data-p="p1">▶ パターン1</button>
+          <button class="btn preset" type="button" id="p2Btn" data-p="p2">▶ パターン2</button>
+        </div>
+        <details class="tool presetEd">
+          <summary>固定の案内の文言を編集</summary>
+          <div class="inner">
+            <div class="field"><label for="a-p1">パターン1</label><input id="a-p1" autocomplete="off"></div>
+            <div class="field"><label for="a-p2">パターン2</label><input id="a-p2" autocomplete="off"></div>
+          </div>
+        </details>
+        <div class="field"><label for="a-text">自由入力</label>
+          <div class="arow"><input id="a-text" list="aRecent" placeholder="まもなく開演します" autocomplete="off"><button class="btn" type="button" id="announceBtn">▶ 案内を表示</button></div></div>
+        <datalist id="aRecent"></datalist>
+        <div class="controls">
+          <label class="hint" for="a-pos">位置</label>
+          <select id="a-pos" style="width:auto;background:var(--raise);border:1px solid var(--line);border-radius:7px;padding:6px 8px">
+            <option value="top">画面の上</option><option value="center">画面の中央</option><option value="bottom">画面の下</option>
+          </select>
+          <label class="hint" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="a-panel" checked> 赤いラベルを付ける</label>
+        </div>
+      </section>
+
+      <section class="card" id="editCard" hidden>
+        <h2 id="editTitle">曲を登録</h2>
+        <form class="form" id="form">
+          <div class="field wide"><label for="f-title">曲名 *</label><input id="f-title" required></div>
+          <div class="field"><label for="f-kana">読み（検索用）</label><input id="f-kana" placeholder="ぐれんげ"></div>
+          <div class="field"><label for="f-artist">アーティスト *</label><input id="f-artist" required></div>
+          <div class="field wide"><label for="f-work">タイアップ作品</label><input id="f-work"></div>
+          <div class="field"><label for="f-type">種別</label><input id="f-type" list="types" placeholder="OP"></div>
+          <div class="field"><label for="f-year">年</label><input id="f-year" inputmode="numeric" placeholder="2024"></div>
+          <datalist id="types"><option>OP</option><option>ED</option><option>挿入歌</option><option>主題歌</option><option>劇場版主題歌</option><option>キャラソン</option><option>イメージソング</option></datalist>
+          <div class="controls wide">
+            <button class="btn primary" type="submit" id="saveBtn">保存</button>
+            <button class="btn ghost" type="button" id="cancelBtn">キャンセル</button>
+            <span class="spacer"></span>
+            <button class="btn ghost danger" type="button" id="delBtn" hidden>この曲を削除</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <details class="tool" id="ioBox">
+          <summary>CSV 取り込み・書き出し</summary>
+          <div class="inner">
+            <div class="field"><label for="csv">CSV / 表を貼り付け</label>
+              <textarea id="csv" placeholder="曲名,読み,アーティスト,作品,種別,年&#10;紅蓮華,ぐれんげ,LiSA,鬼滅の刃,OP,2019"></textarea></div>
+            <div class="controls">
+              <button class="btn primary" id="importBtn">取り込む</button>
+              <label class="btn" for="csvFile">ファイルを選ぶ</label>
+              <input type="file" id="csvFile" accept=".csv,.tsv,.txt,text/csv" hidden>
+              <span class="spacer"></span>
+              <button class="btn" id="exportBtn">CSV をダウンロード</button>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="card" id="batchCard">
+        <h2>取り込んだデータの削除</h2>
+        <div class="batches" id="batches"></div>
+        <div class="dangerzone">
+          <button class="btn ghost danger" id="deleteAllBtn">すべての曲を削除</button>
+          <span class="hint" id="deleteAllHint"></span>
+        </div>
+      </section>
+    </div>
+
+    <div class="col colM">
+      <section class="card" id="stageCard">
+        <h2>ステージ <span class="act"><span class="outstat" id="outStatus">出力ウィンドウ：未接続</span><button class="btn sm" id="outBtn" title="プロジェクターなど別の画面に、ステージだけを映すウィンドウを開きます">2画面：出力ウィンドウを開く ⧉</button><button class="btn sm" id="fsBtn">全画面で本番表示 ⤢</button></span></h2>
+        <div class="stagebox" id="stagebox">
+          <div class="stage bg-grad" id="stage">
+            <span class="onair" id="onair">STANDBY</span>
+            <div class="fx" id="fx"></div>
+            <div class="announce pos-top" id="announce" hidden><div class="ap" id="aOut"></div></div>
+            <div class="notice" id="notice" hidden><div class="np"><h3 id="nTitle"></h3><ul id="nList"></ul></div></div>
+            <div class="telop" id="telop">
+              <div class="band"></div>
+              <div class="meta"><span class="chip" id="tChip" hidden>OP</span><span class="work" id="tWork"></span></div>
+              <div class="title" id="tTitle"></div>
+              <div class="artist" id="tArtist"></div>
+            </div>
+            <div class="intro" id="intro"><div class="ib">
+              <div class="ir" id="irWork"><span class="k">Title&gt;</span><span class="v" id="iWork"></span></div>
+              <div class="ir"><span class="k">NOW PLAYING&gt;</span><span class="v t" id="iTitle"></span></div>
+              <div class="ir" id="irArtist"><span class="k">Artist&gt;</span><span class="v" id="iArtist"></span></div>
+            </div></div>
+          </div>
+          <button class="btn sm exitfs" id="exitFs">✕ 閉じる</button>
+        </div>
+        <div class="controls">
+          <button class="btn live" id="showBtn" disabled>▶ 表示</button>
+          <button class="btn" id="hideBtn">■ 消す</button>
+          <span class="spacer"></span>
+          <span class="animro" id="liveAnim" title="いま出力中の動き（確認用）"><i>動き</i><b>—</b></span>
+        </div>
+      </section>
+
+      <section class="card" id="pvCard">
+        <h2>次の曲（プレビュー）</h2>
+        <div class="pvwrap">
+          <div class="pvbox"><iframe id="pvFrame" title="次の曲のプレビュー" tabindex="-1"></iframe><span class="pvtag">PREVIEW</span></div>
+          <div class="pvside">
+            <span class="hint" id="nowLabel">曲を選んでください</span>
+            <span class="animro" id="pvAnim" title="次に表示したときの動き（確認用）"><i>動き</i><b>—</b></span>
+            <button class="btn" id="tryBtn" title="次の曲の動きを、このプレビューの中だけで再生します（本番には出ません）">▶ 動きを試す</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="setCard">
+        <h2>設定 <span class="act"><button class="btn sm ghost" id="setToggle" type="button" aria-controls="stageSettings" aria-expanded="true">▲ 隠す</button></span></h2>
+        <div class="settings" id="stageSettings">
+          <div class="field"><label for="s-layout">レイアウト</label>
+            <select id="s-layout"><option value="lower">下部テロップ</option><option value="center">センター</option></select></div>
+          <div class="field"><label for="s-bg">背景</label>
+            <select id="s-bg"><option value="grad">ステージ（暗）</option><option value="black">黒</option><option value="green">グリーンバック</option><option value="blue">ブルーバック</option></select></div>
+          <div class="field"><label for="s-anim">動き</label>
+            <select id="s-anim">
+              <option value="random">ランダム（曲ごとに変わる）</option>
+              <option value="order">順番に切り替え</option>
+              <option value="p1">パターン1：アセンブル（文字が集まる）</option>
+              <option value="p2">パターン2：フライイン（文字が飛んでくる）</option>
+              <option value="p3">パターン3：タイプライター</option>
+              <option value="p4">パターン4：キネティック（立体で流れ込む）</option>
+              <option value="p5">パターン5：ウェーブ</option>
+              <option value="p6">パターン6：ターミナル</option>
+              <option value="p7">パターン7：エンドクレジット</option>
+              <option value="p8">パターン8：アンダーライン（下線）</option>
+              <option value="p9">パターン9：シネマ（1行ずつ）</option>
+              <option value="p10">パターン10：グリッチ</option>
+              <option value="p11">パターン11：デコード（文字化けから復元）</option>
+              <option value="p12">パターン12：カード（暗い箱）</option>
+            </select></div>
+          <div class="field"><label for="s-font">文字（フォント）</label>
+            <select id="s-font">
+              <option value="biz">くっきり（BIZ UDPゴシック）</option>
+              <option value="noto">標準ゴシック（Noto Sans JP）</option>
+              <option value="round">丸ゴシック（M PLUS Rounded）</option>
+              <option value="mplus">シャープ（M PLUS 1p）</option>
+              <option value="dela">極太（以前の文字）</option>
+            </select></div>
+          <div class="field"><label for="s-wsize">作品名の大きさ</label>
+            <select id="s-wsize">
+              <option value="0.75">小</option>
+              <option value="1" selected>標準</option>
+              <option value="1.25">大</option>
+              <option value="1.5">特大</option>
+            </select></div>
+          <div class="field"><label for="s-tsize">曲名の大きさ</label>
+            <select id="s-tsize">
+              <option value="0.8">小</option>
+              <option value="1" selected>標準</option>
+              <option value="1.2">大</option>
+              <option value="1.45">特大</option>
+            </select></div>
+          <div class="field"><label for="s-idle">表示中の動き</label>
+            <select id="s-idle">
+              <option value="1">動かす（標準）</option>
+              <option value="1.6">大きく動かす</option>
+              <option value="0.5">控えめ</option>
+              <option value="0">止める</option>
+            </select></div>
+          <div class="field"><label for="s-loop">出る動きの繰り返し</label>
+            <select id="s-loop">
+              <option value="5" selected>5 秒ごと（標準）</option>
+              <option value="8">8 秒ごと</option>
+              <option value="12">12 秒ごと</option>
+              <option value="0">繰り返さない</option>
+            </select></div>
+          <div class="field"><label for="s-auto">自動で消す</label>
+            <select id="s-auto"><option value="0">消さない</option><option value="6">6 秒後</option><option value="10" selected>10 秒後</option><option value="15">15 秒後</option><option value="30">30 秒後</option></select></div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="col colR">
+      <section class="card" id="histCard">
+        <h2>履歴 <span class="count" id="histCount">0</span>
+          <span class="act"><button class="btn sm" id="histExport">CSV で保存</button><button class="btn sm ghost danger" id="histClear">履歴を消す</button></span>
+        </h2>
+        <div class="set hist" id="hist"></div>
+      </section>
+
+      <section class="card noticeEd" id="noticeCard">
+        <h2>注意事項 <span class="act"><button class="btn sm" id="noticeBtn">▶ 注意事項を表示</button></span></h2>
+        <div class="field"><label for="n-title">見出し</label><input id="n-title" placeholder="ご来場の皆さまへ"></div>
+        <div class="field"><label for="n-body">注意事項（1行に1項目）</label><textarea id="n-body"></textarea></div>
+        <div class="controls">
+          <label class="hint" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="n-panel" checked> 文字の後ろに暗い背景を付ける</label>
+          <label class="hint" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="n-bullet" checked> 行頭に「・」を付ける</label>
+          <span class="spacer"></span><span class="hint" id="noticeSaved"></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const norm = s => String(s ?? "").normalize("NFKC").toLowerCase()
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/[\s・\-‐－~〜!！?？、。,.「」『』【】()（）☆★♪'"’“”:：\/]/g, "");
+
+  let songs = [], setlist = [], selectedId = null, setPos = -1, editingId = null;
+  let shown = false, hideTimer = null, ghostTimer = null, manualSong = null;
+  // ---------- two screens: this page is either the operator console or the output window (?output=1) ----------
+  const PREVIEW = new URLSearchParams(location.search).has("preview");   // the preview screen inside the console (an iframe)
+  const OUTPUT = PREVIEW || new URLSearchParams(location.search).has("output");
+  const bc = (window.BroadcastChannel && !PREVIEW) ? new BroadcastChannel("anisong-telop") : null;
+  const tx = (type, data = {}) => { if (!OUTPUT && bc) bc.postMessage({ type, ...data }); };
+  const plainSong = s => ({ id: s.id || "", title: s.title || "", artist: s.artist || "", work: s.work || "", type: s.type || "", year: s.year || "", manual: !!s.manual });
+  let liveOnOutput = false, lastLiveSong = null;
+
+  // ---------- storage: songs.csv via start.bat server, else this browser ----------
+  const LKEY = "anisong-telop-offline-v1";
+  const F = ["title", "kana", "artist", "work", "type", "year"];
+  const COLS = [...F, "src"];
+  const store = { mode: "local" };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const clean = r => ({ title: r.title || "", kana: r.kana || "", artist: r.artist || "", work: r.work || "", type: r.type || "", year: r.year ? String(r.year) : "", src: r.src || "" });
+  const key = s => norm(s.title) + "|" + norm(s.artist);
+  const byId = id => songs.find(s => s.id === id);
+
+  function toCSV() {
+    const q = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    return "曲名,読み,アーティスト,作品,種別,年,取り込み元\r\n" + songs.map(s => COLS.map(k => q(String(s[k] || ""))).join(",")).join("\r\n") + "\r\n";
+  }
+  function setFromKeys(keys) {
+    const m = new Map(songs.map(s => [key(s), s.id]));
+    setlist = (keys || []).map(k => m.get(k)).filter(Boolean);
+  }
+  const setKeys = () => setlist.map(id => byId(id)).filter(Boolean).map(key);
+
+  function loadLocal() {
+    try {
+      const d = JSON.parse(localStorage.getItem(LKEY) || "null");
+      if (d) { songs = toRecords(parseCSV(d.csv || "")).map(r => ({ id: uid(), ...clean(r) })); setFromKeys(d.set); }
+    } catch (e) {}
+  }
+  async function loadServer() {
+    const r = await fetch("api/db", { cache: "no-store" });
+    if (!r.ok) throw new Error("db");
+    songs = toRecords(parseCSV(await r.text())).map(r => ({ id: uid(), ...clean(r) }));
+    let keys = [];
+    try { const s = await fetch("api/setlist", { cache: "no-store" }); if (s.ok) keys = JSON.parse((await s.text()) || "[]"); } catch (e) {}
+    setFromKeys(keys);
+  }
+
+  let saveTimer = null, saving = Promise.resolve();
+  function persist() {
+    if (OUTPUT) return;
+    if (store.mode === "local") {
+      try { localStorage.setItem(LKEY, JSON.stringify({ csv: toCSV(), set: setKeys() })); } catch (e) { toast("ブラウザに保存できませんでした"); }
+      return;
+    }
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const csv = toCSV(), set = JSON.stringify(setKeys());
+      saving = saving.then(async () => {
+        const a = await fetch("api/db", { method: "PUT", body: csv, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        const b = await fetch("api/setlist", { method: "PUT", body: set, headers: { "Content-Type": "application/json" } });
+        if (!a.ok || !b.ok) throw new Error("save");
+      }).catch(() => toast("songs.csv に保存できませんでした。アプリが止まっている可能性があります。いったん閉じて、あにてろを起動し直してください"));
+    }, 250);
+  }
+
+  function setStatus() {
+    const el = $("#status");
+    if (store.mode === "server") { el.textContent = "songs.csv に保存"; el.className = "status cloud"; el.title = "フォルダ内の songs.csv がデータベースです。Excel で編集した後は「CSV を再読込」を押します"; }
+    else { el.textContent = "このブラウザに保存"; el.className = "status"; el.title = "「あにてろを起動.vbs」から起動すると songs.csv に保存されます"; }
+    $("#reloadBtn").hidden = store.mode !== "server";
+  }
+
+  async function initStore() {
+    if (location.protocol.startsWith("http")) {
+      try { await loadServer(); store.mode = "server"; } catch (e) { store.mode = "local"; }
+    }
+    if (store.mode === "local") loadLocal();
+    setStatus(); render(); loadHistory(); loadNotice();
+    if (store.mode === "local" && location.protocol === "file:") toast("「あにてろを起動.vbs」から起動すると、曲データが songs.csv に保存されます");
+  }
+
+  // ---------- rendering ----------
+  function filtered() {
+    const q = norm($("#q").value);
+    const arr = songs.slice().sort((a, b) => norm(a.kana || a.title).localeCompare(norm(b.kana || b.title), "ja"));
+    return q ? arr.filter(s => norm([s.title, s.kana, s.artist, s.work, s.type, s.year].join(" ")).includes(q)) : arr;
+  }
+  const metaLine = s => [s.artist, s.work].filter(Boolean).join(" ／ ");
+
+  function render() {
+    $("#dbCount").textContent = songs.length;
+    const list = filtered(), box = $("#list");
+    if (!songs.length) box.innerHTML = `<div class="empty">まだ曲が登録されていません。<br>「＋ 新規登録」か、CSV の取り込みから始めてください。</div>`;
+    else if (!list.length) box.innerHTML = `<div class="empty">「${esc($("#q").value)}」に一致する曲はありません。<br><button class="btn sm" type="button" data-act="manual">「${esc($("#q").value)}」を手入力で表示する</button></div>`;
+    else box.innerHTML = list.map(s => `
+        <div class="row${s.id === selectedId ? " sel" : ""}" data-id="${esc(s.id)}">
+          <div style="min-width:0">
+            <div class="t">${s.type ? `<span class="tag">${esc(s.type)}</span>` : ""}${esc(s.title)}</div>
+            <div class="m">${esc(metaLine(s))}${s.year ? " ・ " + esc(s.year) : ""}</div>
+          </div>
+          <div class="btns">
+            <button class="btn icon sm" data-act="edit" title="編集" aria-label="編集">✎</button>
+          </div>
+        </div>`).join("");
+    if (selectedId && !byId(selectedId)) selectedId = null;
+    renderSet(); renderBatches(); updateNow();
+  }
+  // ---------- history (every telop that went on air) ----------
+  let history = [];
+  const HKEY = LKEY + "-history";
+  const pad2 = n => String(n).padStart(2, "0");
+  const fmtTime = iso => { const d = new Date(iso); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+  const fmtDate = iso => { const d = new Date(iso); return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+  async function loadHistory() {
+    if (store.mode === "server") {
+      try { const r = await fetch("api/history", { cache: "no-store" }); if (r.ok) { const j = JSON.parse((await r.text()) || "[]"); history = Array.isArray(j) ? j : []; renderSet(); return; } } catch (e) {}
+    }
+    try { history = JSON.parse(localStorage.getItem(HKEY) || "[]") || []; } catch (e) { history = []; }
+    renderSet();
+  }
+  let histChain = Promise.resolve();
+  function saveHistory() {
+    if (OUTPUT) return;
+    try { localStorage.setItem(HKEY, JSON.stringify(history)); } catch (e) {}
+    if (store.mode === "server") {
+      const body = JSON.stringify(history);
+      histChain = histChain.then(() => fetch("api/history", { method: "PUT", body, headers: { "Content-Type": "application/json" } }))
+        .then(r => { if (r && !r.ok) throw 0; }).catch(() => toast("履歴を保存できませんでした。server.ps1 を新しい版に差し替えたか確認してください"));
+    }
+  }
+  function addHistory(s) {
+    if (OUTPUT) return;
+    const e = { t: new Date().toISOString(), title: s.title || "", work: s.work || "", artist: s.artist || "" };
+    const last = history[history.length - 1];
+    if (last && last.title === e.title && last.work === e.work && last.artist === e.artist) return;   // same song shown again right away
+    history.push(e); saveHistory(); renderSet();
+    const box = $("#hist"); box.scrollTop = box.scrollHeight;
+  }
+  function renderSet() {
+    $("#histCount").textContent = history.length;
+    const box = $("#hist");
+    if (!history.length) { box.innerHTML = `<div class="empty">まだ記録はありません。テロップを表示すると、ここに曲名と作品名が並びます。</div>`; return; }
+    box.innerHTML = history.map((h, i) => `<div class="row${i === history.length - 1 ? " last" : ""}" data-i="${i}">
+        <span class="no">${String(i + 1).padStart(2, "0")}</span>
+        <span class="tm" title="${esc(fmtDate(h.t))}">${esc(fmtTime(h.t))}</span>
+        <div class="line" title="${esc(h.title)}　${esc(h.work || "")}"><span class="t">${esc(h.title)}</span><span class="m">${esc(h.work || "")}</span></div>
+        <div class="btns"><button class="btn icon sm" data-act="rm" title="この記録を消す" aria-label="この記録を消す">✕</button></div></div>`).join("");
+  }
+  function updateNow() {
+    const s = byId(selectedId) || (!selectedId && manualSong) || null;
+    $("#showBtn").disabled = !s;
+    $("#nowLabel").textContent = s ? `${s.manual ? "手入力" : "選択中"}：${s.title}` : "曲を選んでください";
+    updatePreview();
+  }
+
+  // ---------- telop ----------
+  function fillTelop(s) {
+    $("#tChip").textContent = [s.type, s.year].filter(Boolean).join(" ・ ") || "NOW PLAYING";
+    $("#tWork").textContent = s.work || "";
+    const tt = $("#tTitle");
+    tt.classList.remove("caret");
+    tt.innerHTML = ((s.title ? `「${s.title}」` : "").match(/[\u3000-\u9fff\uff00-\uffef]|[^\s\u3000-\u9fff\uff00-\uffef]+|\s+/g) || [])
+      .map(tok => /^\s+$/.test(tok) ? `<span class="ch">${esc(tok)}</span>`
+        : `<span class="w">${[...tok].map(c => `<span class="ch">${esc(c)}</span>`).join("")}</span>`).join("");
+    $("#tArtist").textContent = s.artist;
+  }
+  // ---------- motion patterns (text only, using the whole screen) ----------
+  // Every animation started on the stage is recorded here. Browsers silently retire finished animations that a newer
+  // one overrides; retired ones drop out of getAnimations() but can still pin the text visible. Cancelling from our
+  // own record clears them too, so "消す" always really hides the telop.
+  const TRACKED = new Set();
+  const nativeAnimate = Element.prototype.animate;
+  Element.prototype.animate = function (...args) {
+    const a = nativeAnimate.apply(this, args);
+    if (this.closest && this.closest("#stage")) { TRACKED.add(a); a.addEventListener("cancel", () => TRACKED.delete(a)); }
+    return a;
+  };
+  // Each pattern has: in (entrance), idle (loops while shown, scaled by k), out (exit).
+  // Effects that use the whole screen live in #fx, a layer behind the text.
+  const EXPO = "cubic-bezier(.16,1,.3,1)", IN = "cubic-bezier(.6,0,.8,.2)", SPRING = "cubic-bezier(.34,1.56,.64,1)";
+  const SHOW = { opacity: 1, transform: "none", filter: "none" };
+  const A = (el, kf, o) => el.animate(kf, { fill: "both", easing: EXPO, ...o });
+  const L = (el, kf, o) => el.animate(kf, { iterations: Infinity, direction: "alternate", easing: "ease-in-out", ...o });
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const BASE_SHADOW = "0 0 .12em rgba(0,0,0,.55), 0 .2cqw .7cqw rgba(0,0,0,.65)";
+  const GLOW = k => `${BASE_SHADOW}, 0 0 ${2.4 * k}cqw rgba(255,178,26,${Math.min(.9, .7 * k)})`;
+  const COLORS = ["#ffb21a", "#ff4d6d", "#ffffff", "#ffd36b", "#ff8a5b"];
+
+  function els() {
+    const t = $("#telop"), stage = $("#stage");
+    return { t, stage, fx: $("#fx"), meta: t.querySelector(".meta"), title: $("#tTitle"), artist: $("#tArtist"), work: $("#tWork"),
+             chars: [...$("#tTitle").querySelectorAll(".ch")], center: stage.classList.contains("lay-center") };
+  }
+  // geometry in px, relative to the stage
+  function geo(e, el) {
+    const s = e.stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2, w: r.width, h: r.height, W: s.width, H: s.height };
+  }
+  function fxEl(e, cls, css, idle) {
+    const d = document.createElement("div");
+    d.className = cls;
+    if (idle) d.dataset.idle = "1";
+    Object.assign(d.style, css || {});
+    e.fx.appendChild(d);
+    return d;
+  }
+  function clearFx(onlyIdle) {
+    const fx = $("#fx");
+    [...fx.children].forEach(d => { if (!onlyIdle || d.dataset.idle) { d.getAnimations().forEach(a => a.cancel()); d.remove(); } });
+  }
+  const rows = e => [e.meta, e.title, e.artist];
+
+  const ORANGE = "#ffb21a";
+  const vis = el => el.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, fill: "both" });
+  const origin = e => e.center ? "center" : "left center";
+  // A "ticker" is an empty Web Animation that drives a script effect (typing, decoding). It is tracked like every other
+  // animation, so stopAll()/cancel also ends it, and `end` restores the real text.
+  const TICKS = new Set();
+  function tick(el, dur, fn, o = {}) {
+    const delay = o.delay || 0;
+    const a = el.animate([{}, {}], { duration: Math.max(1, dur), delay, iterations: o.iterations || 1, fill: "both" });
+    TICKS.add(a);
+    let ended = false, started = false;
+    const end = () => { if (ended) return; ended = true; TICKS.delete(a); o.end && o.end(); };
+    const step = () => {
+      if (ended) return;
+      if (a.playState === "idle") return end();
+      const ct = a.effect.getComputedTiming(), ms = (a.currentTime || 0) - delay;
+      if (!started && ms >= 0) { started = true; o.start && o.start(); }
+      fn(ct.progress ?? 1, ms, ct.currentIteration ?? 0);
+      if (a.playState === "finished") return end();
+      requestAnimationFrame(step);
+    };
+    a.addEventListener("cancel", end);
+    a.finished.then(() => { if (!ended) { fn(1, dur, 0); end(); } }).catch(() => {});
+    requestAnimationFrame(step);
+    return a;
+  }
+  const endTicks = () => [...TICKS].forEach(a => a.cancel());
+  const WIDE = /[　-鿿＀-￯]/;
+  const POOL_W = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン";
+  const POOL_N = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&*+=?";
+  const rch = c => { if (/\s/.test(c)) return c; const p = WIDE.test(c) ? POOL_W : POOL_N; return p[Math.floor(Math.random() * p.length)]; };
+  // type a plain line (work / artist) one character at a time
+  function typeText(el, dur, delay, cls, keep) {
+    const full = [...el.textContent];
+    return tick(el, dur, p => { const n = Math.ceil(p * full.length); el.textContent = full.slice(0, n).join("") || "​"; },
+      { delay, start: () => cls && el.classList.add(cls), end: () => { el.textContent = full.join(""); if (cls && !keep) el.classList.remove(cls); } });
+  }
+  // type the title (its characters are spans)
+  function typeChars(e, dur, delay, cls, keep) {
+    const n = e.chars.length;
+    return tick(e.title, dur, p => { const m = Math.ceil(p * n); e.chars.forEach((c, i) => c.style.display = i < m ? "" : "none"); },
+      { delay, start: () => cls && e.title.classList.add(cls), end: () => { e.chars.forEach(c => c.style.display = ""); if (cls && !keep) e.title.classList.remove(cls); } });
+  }
+  // random letters that settle into the real text from left to right
+  function scrambleText(el, dur, delay) {
+    const full = [...el.textContent]; let last = -1e9;
+    return tick(el, dur, (p, ms) => {
+      if (ms - last < 45 && p < 1) return; last = ms;
+      const n = Math.floor(p * full.length);
+      el.textContent = full.map((c, i) => i < n ? c : rch(c)).join("");
+    }, { delay, end: () => el.textContent = full.join("") });
+  }
+  function scrambleChars(e, dur, delay) {
+    e.chars.forEach(c => c.dataset.c = c.dataset.c || c.textContent);
+    const n = e.chars.length; let last = -1e9;
+    return tick(e.title, dur, (p, ms) => {
+      if (ms - last < 45 && p < 1) return; last = ms;
+      const m = Math.floor(p * n);
+      e.chars.forEach((c, i) => { if (i < m) { c.textContent = c.dataset.c; c.style.color = ""; } else { c.textContent = rch(c.dataset.c); c.style.color = ORANGE; } });
+    }, { delay, end: () => e.chars.forEach(c => { c.textContent = c.dataset.c; c.style.color = ""; }) });
+  }
+  const SPLIT = x => `${BASE_SHADOW}, ${x}em 0 0 rgba(0,235,255,.85), ${-x}em 0 0 rgba(255,30,80,.85)`;
+  const CLEAR_CLIP = "inset(-60% -10% -60% -10%)";
+  // a short digital glitch: jumps, colour split and sliced frames (each step snaps, no easing)
+  function glitchKF(a, end) {
+    const k = [
+      { opacity: 0, transform: "none", textShadow: BASE_SHADOW, clipPath: CLEAR_CLIP },
+      { opacity: 1, transform: `translateX(${.09 * a}em) skewX(${-14 * a}deg)`, textShadow: SPLIT(.09 * a), clipPath: "inset(8% -10% 55% -10%)", offset: .12 },
+      { opacity: 1, transform: `translateX(${-.07 * a}em)`, textShadow: SPLIT(-.07 * a), clipPath: "inset(52% -10% 4% -10%)", offset: .24 },
+      { opacity: .35, transform: `translateX(${.05 * a}em)`, textShadow: SPLIT(.05 * a), clipPath: CLEAR_CLIP, offset: .34 },
+      { opacity: 1, transform: `translateX(${-.04 * a}em) skewX(${9 * a}deg)`, textShadow: SPLIT(.05 * a), clipPath: "inset(30% -10% 28% -10%)", offset: .48 },
+      { opacity: 1, transform: "none", textShadow: SPLIT(.025 * a), clipPath: CLEAR_CLIP, offset: .64 },
+      { opacity: 1, transform: "none", textShadow: BASE_SHADOW, clipPath: CLEAR_CLIP }];
+    if (end) { k.reverse(); k.forEach((f, i) => { if (f.offset != null) f.offset = 1 - f.offset; }); k[k.length - 1].opacity = 0; }
+    return k.map(f => ({ ...f, easing: "steps(1, end)" }));
+  }
+  const px2pct = (v, W) => (v / W * 100) + "%";
+
+  const PATTERNS = [
+    { name: "アセンブル",   // letters gather from close by, tilted, and settle with a little wobble
+      in: e => {
+        const out = [vis(e.title)];
+        e.chars.forEach((c, i) => out.push(c.animate([
+          { opacity: 0, transform: `translate(${rnd(-1.6, 1.6)}em,${rnd(-1.2, 1.2)}em) rotate(${rnd(-55, 55)}deg) scale(${rnd(.4, 1.6)})` },
+          { opacity: 1, transform: `translate(0em,0em) rotate(${rnd(-12, 12)}deg) scale(1.06)`, offset: .6 },
+          { opacity: 1, transform: `translate(0em,0em) rotate(${rnd(-4, 4)}deg) scale(1)`, offset: .8 },
+          { opacity: 1, transform: "translate(0em,0em) rotate(0deg) scale(1)" }],
+          { duration: 1000, delay: i * 45, fill: "both", easing: "cubic-bezier(.2,.8,.3,1)" })));
+        const d = 200 + e.chars.length * 30;
+        out.push(A(e.meta, [{ opacity: 0, transform: "translateY(-.6em)" }, SHOW], { duration: 700, delay: d }));
+        out.push(A(e.artist, [{ opacity: 0, transform: "translateY(.6em)" }, SHOW], { duration: 700, delay: d + 150 }));
+        return out;
+      },
+      idle: (e, k) => e.chars.map((c, i) => L(c, [{ transform: "rotate(0deg) translateY(0em)" }, { transform: `rotate(${rnd(-5, 5) * k}deg) translateY(${-rnd(.02, .07) * k}em)` }], { duration: rnd(1100, 1800), delay: i * 60 })),
+      out: e => [
+        ...e.chars.map(c => A(c, [SHOW, { opacity: 0, transform: `translate(${rnd(-1.2, 1.2)}em,${rnd(-1, 1)}em) rotate(${rnd(-40, 40)}deg) scale(.6)` }], { duration: 380, delay: rnd(0, 120), easing: IN })),
+        A(e.meta, [SHOW, { opacity: 0, transform: "translateY(-.4em)" }], { duration: 300, easing: IN }),
+        A(e.artist, [SHOW, { opacity: 0, transform: "translateY(.4em)" }], { duration: 300, easing: IN })] },
+
+    { name: "フライイン",   // letters fly in from all over the screen, spinning, and line up
+      in: e => {
+        const out = [vis(e.title)];
+        e.chars.forEach((c, i) => {
+          const g = geo(e, c), tx = rnd(.05, .95) * g.W - g.x, ty = rnd(.05, .95) * g.H - g.y;
+          out.push(A(c, [{ opacity: 0, transform: `translate(${tx}px,${ty}px) rotate(${rnd(-360, 360)}deg) scale(${rnd(1.5, 3)})` }, { opacity: 1, offset: .3 }, SHOW], { duration: 1100, delay: i * 50 + rnd(0, 120) }));
+        });
+        const d = 500 + e.chars.length * 25;
+        out.push(A(e.meta, [{ opacity: 0, transform: "translateX(-1em)" }, SHOW], { duration: 600, delay: d }));
+        out.push(A(e.artist, [{ opacity: 0, transform: "translateX(-1em)" }, SHOW], { duration: 600, delay: d + 150 }));
+        return out;
+      },
+      idle: (e, k) => e.chars.map((c, i) => L(c, [{ transform: "translate(0em,0em)" }, { transform: `translate(${rnd(-.04, .04) * k}em,${-rnd(.05, .12) * k}em)` }], { duration: rnd(900, 1500), delay: i * 70 })),
+      out: e => [
+        ...e.chars.map(c => { const g = geo(e, c); return A(c, [SHOW, { opacity: 0, transform: `translate(${rnd(.05, .95) * g.W - g.x}px,${rnd(.05, .95) * g.H - g.y}px) rotate(${rnd(-300, 300)}deg) scale(2)` }], { duration: 600, delay: rnd(0, 120), easing: IN }); }),
+        A(e.meta, [SHOW, { opacity: 0 }], { duration: 300, easing: IN }), A(e.artist, [SHOW, { opacity: 0 }], { duration: 300, easing: IN })] },
+
+    { name: "タイプライター",   // an orange caret blinks, the title is typed, then the other lines slide in
+      in: e => {
+        const n = e.chars.length, step = Math.min(95, 1300 / Math.max(1, n)), wait = 500;
+        e.title.classList.add("caret");
+        const out = [vis(e.title), typeChars(e, n * step, wait)];
+        const t1 = wait + n * step;
+        out.push(A(e.meta, [{ opacity: 0, transform: "translateX(-1.2em)" }, SHOW], { duration: 600, delay: t1 + 120 }));
+        out.push(A(e.artist, [{ opacity: 0, transform: "translateX(-1.2em)" }, SHOW], { duration: 600, delay: t1 + 280 }));
+        return out;
+      },
+      idle: (e, k) => [L(e.artist, [{ opacity: 1 }, { opacity: 1 - .25 * k }], { duration: 1800 })],
+      out: e => { e.title.classList.remove("caret"); return rows(e).map((el, i) => A(el, [SHOW, { opacity: 0, transform: "translateX(1em)" }], { duration: 320, delay: i * 50, easing: IN })); } },
+
+    { name: "キネティック",   // lines sweep through in 3D from different directions and lock into place
+      in: e => {
+        const g = geo(e, e.title), o = origin(e);
+        return [
+          A(e.title, [{ opacity: 0, transform: `translate3d(${g.W * .5}px,${-g.H * .25}px,-400px) rotateY(-55deg) rotateZ(-10deg) scale(1.3)` }, { opacity: 1, offset: .35 },
+            { transform: "translate3d(-1.2cqw,0px,0px) rotateY(6deg) rotateZ(0deg) scale(1)", offset: .75 }, { opacity: 1, transform: "translate3d(0px,0px,0px) rotateY(0deg) rotateZ(0deg) scale(1)" }], { duration: 1200 }),
+          A(e.meta, [{ opacity: 0, transform: `translateX(${-g.W * .6}px) rotateZ(8deg) skewX(-20deg)`, transformOrigin: o }, { opacity: 1, offset: .4 }, { opacity: 1, transform: "translateX(0px) rotateZ(0deg) skewX(0deg)", transformOrigin: o }], { duration: 1000, delay: 250 }),
+          A(e.artist, [{ opacity: 0, transform: "translateY(4cqh) rotateX(85deg)", transformOrigin: "center bottom" }, { opacity: 1, transform: "translateY(0cqh) rotateX(0deg)", transformOrigin: "center bottom" }], { duration: 900, delay: 520 })];
+      },
+      idle: (e, k) => [
+        L(e.title, [{ transform: "rotateY(0deg) rotateX(0deg)" }, { transform: `rotateY(${-7 * k}deg) rotateX(${3 * k}deg)` }], { duration: 2600 }),
+        L(e.meta, [{ transform: "translateX(0cqw)" }, { transform: `translateX(${.8 * k}cqw)` }], { duration: 2600 }),
+        L(e.artist, [{ transform: "translateX(0cqw)" }, { transform: `translateX(${-.8 * k}cqw)` }], { duration: 2600 })],
+      out: e => {
+        const g = geo(e, e.title);
+        return [
+          A(e.title, [{ opacity: 1, transform: "translate3d(0px,0px,0px) rotateY(0deg)" }, { opacity: 0, transform: `translate3d(${-g.W * .5}px,0px,-300px) rotateY(50deg)` }], { duration: 450, easing: IN }),
+          A(e.meta, [{ opacity: 1, transform: "translateX(0px) skewX(0deg)" }, { opacity: 0, transform: `translateX(${g.W * .4}px) skewX(-20deg)` }], { duration: 400, easing: IN }),
+          A(e.artist, [{ opacity: 1, transform: "rotateX(0deg)", transformOrigin: "center bottom" }, { opacity: 0, transform: "rotateX(85deg)", transformOrigin: "center bottom" }], { duration: 350, easing: IN })];
+      } },
+
+    { name: "ウェーブ",   // letters drop in one after another and bounce like a wave
+      in: e => {
+        const out = [vis(e.title)];
+        e.chars.forEach((c, i) => out.push(c.animate([
+          { opacity: 0, transform: "translateY(-1.4em) scale(1,1.2)", easing: "cubic-bezier(.55,0,1,.45)" },
+          { opacity: 1, transform: "translateY(0em) scale(1.12,.8)", offset: .5, easing: "cubic-bezier(0,.55,.45,1)" },
+          { opacity: 1, transform: "translateY(-.28em) scale(1,1)", offset: .75, easing: "cubic-bezier(.55,0,1,.45)" },
+          { opacity: 1, transform: "translateY(0em) scale(1,1)" }], { duration: 800, delay: i * 55, fill: "both" })));
+        const d = 350 + e.chars.length * 40;
+        out.push(A(e.meta, [{ opacity: 0, transform: "translateY(-.8em)" }, SHOW], { duration: 650, delay: d, easing: SPRING }));
+        out.push(A(e.artist, [{ opacity: 0, transform: "translateY(-.8em)" }, SHOW], { duration: 650, delay: d + 140, easing: SPRING }));
+        return out;
+      },
+      idle: (e, k) => e.chars.map((c, i) => L(c, [{ transform: "translateY(0em)" }, { transform: `translateY(${-.15 * k}em)` }], { duration: 650, delay: i * 90 })),
+      out: e => [
+        ...e.chars.map((c, i) => A(c, [SHOW, { opacity: 0, transform: "translateY(.9em)" }], { duration: 300, delay: i * 18, easing: IN })),
+        A(e.meta, [SHOW, { opacity: 0, transform: "translateY(.6em)" }], { duration: 300, easing: IN }),
+        A(e.artist, [SHOW, { opacity: 0, transform: "translateY(.6em)" }], { duration: 300, easing: IN })] },
+
+    { name: "ターミナル",   // each line is typed after an orange prompt, like commands on a terminal
+      in: e => {
+        e.t.classList.add("term");
+        const W = [...e.work.textContent].length, Ar = [...e.artist.textContent].length, n = e.chars.length, sp = 42;
+        const t0 = 250, t1 = t0 + W * sp + 260, t2 = t1 + n * sp * 1.4 + 260;
+        return [
+          A(e.meta, [{ opacity: 0 }, { opacity: 1 }], { duration: 1, delay: t0, easing: "linear" }), typeText(e.work, W * sp, t0, "cur"),
+          A(e.title, [{ opacity: 0 }, { opacity: 1 }], { duration: 1, delay: t1, easing: "linear" }), typeChars(e, n * sp * 1.4, t1, "ucur"),
+          A(e.artist, [{ opacity: 0 }, { opacity: 1 }], { duration: 1, delay: t2, easing: "linear" }), typeText(e.artist, Ar * sp, t2, "cur", true)];
+      },
+      idle: () => [],
+      out: e => [e.artist, e.title, e.meta].map((el, i) => A(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 1, delay: i * 90, easing: "linear" })) },
+
+    { name: "エンドクレジット",   // lines rise out of a soft blur one by one, letter spacing closing in
+      in: e => rows(e).map((el, i) => {
+        const ls = getComputedStyle(el === e.meta ? e.work : el).letterSpacing;
+        const target = el === e.meta ? e.work : el;
+        if (target !== el) A(target, [{ letterSpacing: ".3em" }, { letterSpacing: ls }], { duration: 1600, delay: i * 550, easing: "cubic-bezier(.25,.6,.3,1)" });
+        return A(el, [{ opacity: 0, filter: "blur(.8cqw)", ...(target === el ? { letterSpacing: ".3em" } : {}) }, { opacity: 1, filter: "blur(0cqw)", ...(target === el ? { letterSpacing: ls } : {}) }], { duration: 1600, delay: i * 550, easing: "cubic-bezier(.25,.6,.3,1)" });
+      }),
+      idle: (e, k) => [L(e.title, [{ textShadow: BASE_SHADOW }, { textShadow: GLOW(.45 * k) }], { duration: 2600 })],
+      out: e => rows(e).map(el => A(el, [{ opacity: 1, filter: "blur(0cqw)" }, { opacity: 0, filter: "blur(.6cqw)" }], { duration: 550, easing: "ease-in" })) },
+
+    { name: "アンダーライン",   // the title fades from grey to white, then an orange line draws under it
+      in: e => [
+        A(e.title, [{ opacity: 0, color: "#6b6b6b", transform: "translateY(.25em)" }, { opacity: 1, color: "#6b6b6b", transform: "translateY(0em)", offset: .45 }, { opacity: 1, color: "#ffffff", transform: "translateY(0em)" }], { duration: 1300 }),
+        A(e.title, [{ backgroundSize: "0% .09em" }, { backgroundSize: "100% .09em" }], { duration: 700, delay: 1000 }),
+        A(e.meta, [{ opacity: 0, transform: "translateX(-.6em)" }, SHOW], { duration: 600, delay: 1350 }),
+        A(e.artist, [{ opacity: 0, transform: "translateX(-.6em)" }, SHOW], { duration: 600, delay: 1500 })],
+      idle: (e, k) => [L(e.title, [{ backgroundSize: "100% .09em" }, { backgroundSize: `${100 - 35 * k}% .09em` }], { duration: 2200 })],
+      out: e => [
+        A(e.title, [{ backgroundSize: "100% .09em" }, { backgroundSize: "0% .09em" }], { duration: 250, easing: IN }),
+        ...rows(e).map((el, i) => A(el, [SHOW, { opacity: 0 }], { duration: 300, delay: 120 + i * 40, easing: IN }))] },
+
+    { name: "シネマ",   // like film credits: each line appears alone, then everything comes together
+      in: e => {
+        const o = origin(e), out = [];
+        const solo = (el, d) => out.push(el.animate([{ opacity: 0, filter: "blur(.5cqw)", transform: "scale(1.06)", transformOrigin: o }, { opacity: 1, filter: "blur(0cqw)", transform: "scale(1)", transformOrigin: o, offset: .3 }, { opacity: 1, offset: .75 }, { opacity: 0, filter: "blur(.3cqw)", transform: "scale(.98)", transformOrigin: o }], { duration: 1300, delay: d, easing: "ease-in-out" }));
+        const last = (el, d) => out.push(el.animate([{ opacity: 0, filter: "blur(.5cqw)", transform: "scale(1.06)", transformOrigin: o }, { opacity: 1, filter: "blur(0cqw)", transform: "scale(1)", transformOrigin: o }], { duration: 900, delay: d, fill: "forwards", easing: EXPO }));
+        let t = 0;
+        if (e.work.textContent.trim()) { solo(e.meta, t); t += 1200; }
+        if (e.artist.textContent.trim()) { solo(e.artist, t); t += 1200; }
+        last(e.title, t); last(e.meta, t + 700); last(e.artist, t + 850);
+        return out;
+      },
+      idle: (e, k) => [L(e.title, [{ transform: "scale(1)", transformOrigin: origin(e) }, { transform: `scale(${1 + .025 * k})`, transformOrigin: origin(e) }], { duration: 4200 })],
+      out: e => rows(e).map(el => A(el, [{ opacity: 1, filter: "blur(0cqw)" }, { opacity: 0, filter: "blur(.5cqw)" }], { duration: 500, easing: "ease-in" })) },
+
+    { name: "グリッチ",   // the text flickers in with a red/cyan split and sliced frames; small bursts while shown
+      in: e => [A(e.title, glitchKF(1), { duration: 750, easing: "linear" }), A(e.meta, glitchKF(.7), { duration: 650, delay: 300, easing: "linear" }), A(e.artist, glitchKF(.7), { duration: 650, delay: 450, easing: "linear" })],
+      idle: (e, k) => {
+        if (!(k > 0)) return [];
+        const burst = (el, a, d) => el.animate([
+          { transform: "none", textShadow: BASE_SHADOW, clipPath: CLEAR_CLIP, offset: 0 }, { transform: "none", textShadow: BASE_SHADOW, clipPath: CLEAR_CLIP, offset: .9 },
+          { transform: `translateX(${.07 * a}em) skewX(${-10 * a}deg)`, textShadow: SPLIT(.07 * a), clipPath: "inset(15% -10% 45% -10%)", offset: .92 },
+          { transform: `translateX(${-.05 * a}em)`, textShadow: SPLIT(-.05 * a), clipPath: "inset(55% -10% 5% -10%)", offset: .95 },
+          { transform: "none", textShadow: SPLIT(.03 * a), clipPath: CLEAR_CLIP, offset: .97 },
+          { transform: "none", textShadow: BASE_SHADOW, clipPath: CLEAR_CLIP, offset: 1 }].map(f => ({ ...f, easing: "steps(1, end)" })),
+          { duration: 3400, delay: d, iterations: Infinity });
+        return [burst(e.title, k, 0), burst(e.artist, .7 * k, 1700)];
+      },
+      out: e => rows(e).map((el, i) => A(el, glitchKF(.8, true), { duration: 380, delay: i * 40, easing: "linear" })) },
+
+    { name: "デコード",   // random orange letters lock into the real text from left to right
+      in: e => {
+        const n = e.chars.length, dur = 300 + n * 75;
+        const out = [A(e.title, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" }), scrambleChars(e, dur, 0)];
+        const d = dur * .55;
+        out.push(A(e.meta, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: d, easing: "linear" }), scrambleText(e.work, 700, d));
+        out.push(A(e.artist, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: d + 180, easing: "linear" }), scrambleText(e.artist, 700, d + 180));
+        return out;
+      },
+      idle: (e, k) => {
+        if (!(k > 0) || !e.chars.length) return [];
+        e.chars.forEach(c => c.dataset.c = c.dataset.c || c.textContent);
+        let it = -1, idx = -1;
+        const pick = () => { const ok = e.chars.map((c, i) => /\S/.test(c.dataset.c) ? i : -1).filter(i => i >= 0); return ok[Math.floor(Math.random() * ok.length)] ?? 0; };
+        const reset = () => { if (idx >= 0) { const c = e.chars[idx]; c.textContent = c.dataset.c; c.style.color = ""; } };
+        return [tick(e.title, 2600 / k, (p, ms, cur) => {
+          if (cur !== it) { reset(); it = cur; idx = pick(); }
+          const c = e.chars[idx]; if (!c) return;
+          if (p < .07) { c.textContent = rch(c.dataset.c); c.style.color = ORANGE; } else if (c.style.color) { c.textContent = c.dataset.c; c.style.color = ""; }
+        }, { iterations: Infinity, end: reset })];
+      },
+      out: e => {
+        e.chars.forEach(c => c.dataset.c = c.dataset.c || c.textContent);
+        const sc = tick(e.title, 350, (p) => e.chars.forEach((c, i) => { if (i >= e.chars.length * (1 - p)) { c.textContent = rch(c.dataset.c); c.style.color = ORANGE; } }),
+          { end: () => e.chars.forEach(c => { c.textContent = c.dataset.c; c.style.color = ""; }) });
+        return [sc, ...rows(e).map(el => A(el, [{ opacity: 1 }, { opacity: 1, offset: .6 }, { opacity: 0 }], { duration: 420, easing: "linear" }))];
+      } },
+
+    { name: "カード",   // a dark card with an orange edge opens, and the lines slide in on it
+      in: e => {
+        const s = e.stage.getBoundingClientRect();
+        const rs = rows(e).map(r => r.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
+        const l = Math.min(...rs.map(r => r.left)), r = Math.max(...rs.map(r => r.right)), t = Math.min(...rs.map(r => r.top)), b = Math.max(...rs.map(r => r.bottom));
+        const px = s.width * .026, py = s.height * .03;
+        const box = fxEl(e, "card", { left: px2pct(l - s.left - px, s.width), top: px2pct(t - s.top - py, s.height), width: px2pct(r - l + px * 2, s.width), height: px2pct(b - t + py * 2, s.height) });
+        box.dataset.keep = "1";
+        const bo = e.center ? "center" : "left center";
+        return [
+          A(box, [{ opacity: 1, transform: "scaleX(0)", transformOrigin: bo }, { opacity: 1, transform: "scaleX(1)", transformOrigin: bo }], { duration: 550 }),
+          ...rows(e).map((el, i) => A(el, [{ opacity: 0, transform: "translateX(-1.2em)" }, SHOW], { duration: 600, delay: 330 + i * 110 }))];
+      },
+      idle: (e, k) => [...e.fx.querySelectorAll(".card")].map(b => L(b, [{ borderLeftColor: ORANGE }, { borderLeftColor: k > 0 ? "#ff7a45" : ORANGE }], { duration: 1600 })),
+      out: e => [
+        ...rows(e).map(el => A(el, [SHOW, { opacity: 0 }], { duration: 220, easing: IN })),
+        ...[...e.fx.querySelectorAll(".card")].map(b => A(b, [{ transform: "scaleX(1)", transformOrigin: "right center" }, { transform: "scaleX(0)", transformOrigin: "right center" }], { duration: 380, delay: 150, easing: IN }))] },
+  ];
+
+  let idleAnims = [];
+  let loopTimer = null;
+  function stopIdle() {
+    clearTimeout(loopTimer); loopTimer = null;
+    idleAnims.forEach(a => a.cancel()); idleAnims = [];
+    clearFx(true);
+    $("#telop").classList.remove("live", "soft");
+  }
+  function startIdle() {
+    stopIdle();
+    if (!shown) return;
+    // replay the entrance every few seconds: entrance -> shown (idle) -> quick exit -> entrance -> ...
+    const loop = +$("#s-loop").value, token = playToken;
+    if (loop > 0 && !airTest) loopTimer = setTimeout(() => replay(token), loop * 1000);
+    const k = +$("#s-idle").value;
+    if (!(k > 0)) return;
+    const t = $("#telop");
+    t.classList.add("live"); t.classList.toggle("soft", k < 1);
+    idleAnims = pattern(curPattern).idle(els(), k);
+  }
+
+  function replay(token) {
+    if (token !== playToken || !shown) return;
+    stopIdle();
+    done(runOut()).then(() => {
+      if (token !== playToken || !shown) return;
+      stopAll();
+      done(pattern(curPattern).in(els())).then(() => {
+        if (token !== playToken || !shown) return;
+        [...$("#fx").children].forEach(d => { if (!d.dataset.keep && !d.dataset.idle) d.remove(); });
+        startIdle();
+      });
+    });
+  }
+  let curPattern = 0, lastPattern = -1, lastSongId = null, orderIdx = -1, playToken = 0;
+  // The next motion is decided ahead of time, so the preview shows (and "動きを試す" plays) the motion the live show will use.
+  let pending = null;
+  function peekPattern(songId) {
+    const mode = $("#s-anim").value;
+    if (/^p\d+$/.test(mode)) return Math.min(PATTERNS.length, +mode.slice(1)) - 1;
+    if (songId && songId === lastSongId && lastPattern >= 0) return lastPattern;   // same song again: keep its motion
+    if (!pending || pending.mode !== mode) {
+      let i;
+      if (mode === "order") i = (orderIdx + 1) % PATTERNS.length;
+      else do { i = Math.floor(Math.random() * PATTERNS.length); } while (PATTERNS.length > 1 && i === lastPattern);
+      pending = { mode, i };
+    }
+    return pending.i;
+  }
+  function choosePattern(songId) {
+    const i = peekPattern(songId), mode = $("#s-anim").value;
+    if (pending && pending.i === i && !(songId && songId === lastSongId && lastPattern >= 0)) { if (mode === "order") orderIdx = i; pending = null; }
+    return i;
+  }
+  // The telop is show output, so it always animates, even when Windows "animation effects" are turned off.
+  const pattern = i => PATTERNS[i] || PATTERNS[0];
+  function stopAll() {
+    const t = $("#telop");
+    t.getAnimations({ subtree: true }).forEach(a => { if (!(window.CSSAnimation && a instanceof CSSAnimation)) a.cancel(); });
+    [...TRACKED].forEach(a => a.cancel()); TRACKED.clear();
+    clearFx(false);
+    resetDeco();
+  }
+  function resetDeco() {
+    $("#telop").classList.remove("term");
+    $("#tTitle").classList.remove("caret", "ucur"); $("#tWork").classList.remove("cur"); $("#tArtist").classList.remove("cur");
+    $("#tTitle").querySelectorAll(".ch").forEach(c => { c.style.display = ""; c.style.color = ""; });
+  }
+  const runOut = () => { endTicks(); return pattern(curPattern).out(els()); };
+  const done = anims => Promise.all(anims.map(a => a.finished)).catch(() => {});
+
+  // ---------- notice (static, shown on demand) ----------
+  const NKEY = LKEY + "-notice";
+  const NOTICE_DEFAULT = {
+    title: "ご来場の皆さまへ",
+    body: ["会場内での撮影・録音・録画はご遠慮ください", "周りのお客様の迷惑になる行為（過度な声出し・前の方へ押し出す行為など）はおやめください",
+           "ペンライトは胸の高さより上に掲げないでください", "体調が悪くなった場合は、お近くのスタッフにお声がけください",
+           "貴重品は各自で管理をお願いします"].join("\n"),
+    panel: true, bullet: true, announce: "", apos: "top", apanel: true, recent: [], p1: "ホール内は撮影禁止", p2: "No photography in the hall" };
+  let notice = { ...NOTICE_DEFAULT }, noticeShown = false, announceShown = false;
+  function applyNoticeForm() {
+    $("#n-title").value = notice.title || ""; $("#n-body").value = notice.body || "";
+    $("#n-panel").checked = notice.panel !== false; $("#n-bullet").checked = notice.bullet !== false;
+    $("#a-text").value = notice.announce || ""; $("#a-pos").value = notice.apos || "top"; $("#a-panel").checked = notice.apanel !== false;
+    $("#a-p1").value = notice.p1 ?? NOTICE_DEFAULT.p1; $("#a-p2").value = notice.p2 ?? NOTICE_DEFAULT.p2; labelPresets();
+    renderRecent();
+  }
+  async function loadNotice() {
+    let got = null;
+    if (store.mode === "server") { try { const r = await fetch("api/notice", { cache: "no-store" }); if (r.ok) { const t = await r.text(); if (t.trim()) got = JSON.parse(t); } } catch (e) {} }
+    if (!got) { try { got = JSON.parse(localStorage.getItem(NKEY) || "null"); } catch (e) {} }
+    if (got && typeof got === "object") notice = { ...NOTICE_DEFAULT, ...got };
+    if (notice.p2 === "Photography is prohibited inside the hall") notice.p2 = NOTICE_DEFAULT.p2;   // earlier default wording -> shorter one
+    applyNoticeForm();
+  }
+  let nTimer = null, nChain = Promise.resolve();
+  function saveNotice() {
+    notice = { ...notice, title: $("#n-title").value, body: $("#n-body").value, panel: $("#n-panel").checked, bullet: $("#n-bullet").checked,
+               announce: $("#a-text").value, apos: $("#a-pos").value, apanel: $("#a-panel").checked, p1: $("#a-p1").value, p2: $("#a-p2").value };
+    labelPresets();
+    if (noticeShown) { renderNotice(); tx("notice", { on: true, data: notice }); }
+    if (announceShown) { renderAnnounce(); txAnnounce(); }
+    if (OUTPUT) return;
+    clearTimeout(nTimer);
+    nTimer = setTimeout(() => {
+      try { localStorage.setItem(NKEY, JSON.stringify(notice)); } catch (e) {}
+      const done = () => { $("#noticeSaved").textContent = "保存しました"; setTimeout(() => $("#noticeSaved").textContent = "", 1500); };
+      if (store.mode === "server") {
+        const body = JSON.stringify(notice);
+        nChain = nChain.then(() => fetch("api/notice", { method: "PUT", body, headers: { "Content-Type": "application/json" } }))
+          .then(r => { if (!r.ok) throw 0; done(); }).catch(() => { $("#noticeSaved").textContent = "この PC のブラウザにだけ保存しました（server.ps1 を新しい版にすると notice.json に保存されます）"; });
+      } else done();
+    }, 400);
+  }
+  ["#n-title", "#n-body"].forEach(id => $(id).addEventListener("input", saveNotice));
+  ["#n-panel", "#n-bullet"].forEach(id => $(id).addEventListener("change", saveNotice));
+  function fitNotice() {
+    const st = $("#stage"), np = $("#notice .np");
+    let k = 1; st.style.setProperty("--ns", k);
+    const limit = st.clientHeight * 0.88;
+    while (np.scrollHeight > limit && k > 0.35) { k -= 0.05; st.style.setProperty("--ns", k.toFixed(2)); }
+  }
+  function renderNotice() {
+    const n = $("#notice");
+    n.classList.toggle("nopanel", notice.panel === false);
+    n.classList.toggle("plain", notice.bullet === false);
+    $("#nTitle").textContent = (notice.title || "").trim();
+    $("#nList").innerHTML = String(notice.body || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<li>${esc(x)}</li>`).join("");
+    if (!n.hidden) fitNotice();
+  }
+  function showNotice() {
+    tx("notice", { on: true, data: notice });
+    if (shown) hide();
+    hideAnnounce();
+    renderNotice();
+    $("#notice").hidden = false; noticeShown = true; $("#stage").classList.add("noticing"); fitNotice();
+    $("#noticeBtn").classList.add("on"); $("#noticeBtn").textContent = "■ 注意事項を消す";
+    setAir();
+  }
+  function hideNotice() {
+    if (!noticeShown) return;
+    tx("notice", { on: false });
+    $("#notice").hidden = true; noticeShown = false; $("#stage").classList.remove("noticing");
+    $("#noticeBtn").classList.remove("on"); $("#noticeBtn").textContent = "▶ 注意事項を表示";
+    setAir();
+  }
+  $("#noticeBtn").addEventListener("click", () => noticeShown ? hideNotice() : showNotice());
+
+  // ---------- announcement (one line, static) ----------
+  function renderRecent() {
+    $("#aRecent").innerHTML = (notice.recent || []).map(t => `<option value="${esc(t)}"></option>`).join("");
+  }
+  function fitAnnounce() {
+    const st = $("#stage"), ap = $("#aOut");
+    let k = 1; st.style.setProperty("--as", k);
+    const limit = st.clientWidth * 0.94;
+    while (ap.scrollWidth > limit && k > 0.3) { k -= 0.04; st.style.setProperty("--as", k.toFixed(2)); }
+  }
+  let announceSrc = "free";   // what is on screen: the free text ("free") or a fixed pattern ("p1" / "p2")
+  const announceText = src => String((src === "free" ? notice.announce : notice[src]) || "").trim();
+  function labelPresets() {
+    ["p1", "p2"].forEach((k, i) => {
+      const b = $(`#${k}Btn`), on = announceShown && announceSrc === k, t = String(notice[k] || "").trim();
+      b.innerHTML = `${on ? "■" : "▶"} パターン${i + 1}<small>${esc(t || "（文言が空です）")}</small>`;
+      b.classList.toggle("on", on); b.title = t;
+    });
+    const fb = $("#announceBtn"), fon = announceShown && announceSrc === "free";
+    fb.classList.toggle("on", fon); fb.textContent = fon ? "■ 案内を消す" : "▶ 案内を表示";
+  }
+  function renderAnnounce() {
+    const a = $("#announce");
+    a.className = `announce pos-${notice.apos || "top"}${notice.apanel === false ? " nopanel" : ""}`;
+    $("#aOut").textContent = announceText(announceSrc);
+    if (!a.hidden) fitAnnounce();
+  }
+  function showAnnounce(src = "free") {
+    saveNotice();
+    const text = announceText(src);
+    if (!text) {
+      if (src === "free") { toast("案内の文を入力してください"); $("#a-text").focus(); }
+      else { toast(`パターン${src.slice(1)}の文言が空です。「固定の案内の文言を編集」で入力してください`); $(".presetEd").open = true; $(`#a-${src}`).focus(); }
+      return;
+    }
+    hideNotice();
+    if (src === "free") { notice.recent = [text, ...(notice.recent || []).filter(t => t !== text)].slice(0, 10); renderRecent(); saveNotice(); }
+    announceSrc = src;
+    renderAnnounce();
+    $("#announce").hidden = false; announceShown = true; fitAnnounce();
+    labelPresets(); setAir(); txAnnounce();
+  }
+  function txAnnounce() { tx("announce", { on: announceShown, text: announceText(announceSrc), apos: notice.apos, apanel: notice.apanel }); }
+  function hideAnnounce() {
+    if (!announceShown) return;
+    announceShown = false; txAnnounce(); announceShown = true;
+    $("#announce").hidden = true; announceShown = false;
+    labelPresets(); setAir();
+  }
+  const toggleAnnounce = src => (announceShown && announceSrc === src) ? hideAnnounce() : showAnnounce(src);
+  $("#announceBtn").addEventListener("click", () => toggleAnnounce("free"));
+  $("#p1Btn").addEventListener("click", () => toggleAnnounce("p1"));
+  $("#p2Btn").addEventListener("click", () => toggleAnnounce("p2"));
+  ["#a-text", "#a-p1", "#a-p2"].forEach(id => $(id).addEventListener("input", saveNotice));
+  $("#a-text").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); showAnnounce("free"); } });
+  ["#a-pos", "#a-panel"].forEach(id => $(id).addEventListener("change", saveNotice));
+  // show / hide the stage settings (layout, background, motion ...); the choice is remembered on this PC
+  function setSettingsVisible(on) {
+    $("#stageSettings").hidden = !on;
+    const b = $("#setToggle");
+    b.textContent = on ? "▲ 隠す" : "▼ 表示"; b.setAttribute("aria-expanded", String(on));
+    try { localStorage.setItem(LKEY + "-sethide", on ? "0" : "1"); } catch (e) {}
+    if (typeof syncLeft === "function") syncLeft();
+  }
+  $("#setToggle").addEventListener("click", () => setSettingsVisible($("#stageSettings").hidden));
+  try { if (localStorage.getItem(LKEY + "-sethide") === "1") setSettingsVisible(false); } catch (e) {}
+  // left column: song database + manual entry together are as tall as the stage card; the list scrolls inside, so
+  // searching never changes the size of the card
+  function syncLeft() {
+    if (OUTPUT) return;
+    const db = $("#dbCard");
+    const hc = $("#histCard"), three = !matchMedia("(max-width:1280px)").matches;
+    const H = Math.round($("#pvCard").getBoundingClientRect().bottom - $("#stageCard").getBoundingClientRect().top);
+    hc.classList.toggle("fit", three); hc.style.height = three ? H + "px" : "";
+    if (matchMedia("(max-width:980px)").matches) { db.style.height = ""; return; }
+    const h = (matchMedia("(max-width:1280px)").matches ? H : H) - $("#manualCard").offsetHeight - 14;
+    db.style.height = Math.max(180, Math.round(h)) + "px";
+  }
+  if (window.ResizeObserver) { const ro = new ResizeObserver(syncLeft); ro.observe($("#stageCard")); ro.observe($("#pvCard")); ro.observe($("#manualCard")); }
+  addEventListener("resize", syncLeft); syncLeft();
+  if (window.ResizeObserver) new ResizeObserver(() => { if (noticeShown) fitNotice(); if (announceShown) fitAnnounce(); }).observe($("#stage"));
+
+  function showSong(s, opts = {}) {
+    if (!s) return;
+    hideNotice();
+    const nextPattern = opts.pattern != null ? opts.pattern : choosePattern(s.id);
+    if (!opts.test) { liveOnOutput = true; lastLiveSong = plainSong(s); tx("show", { song: lastLiveSong, pattern: nextPattern }); }
+    const t = $("#telop");
+    clearTimeout(hideTimer); clearTimeout(ghostTimer);
+    const token = ++playToken;
+    const go = () => {
+      if (token !== playToken) return;
+      stopAll();
+      t.classList.remove("ghost", "live");
+      fillTelop(s); fillIntro(s);
+      curPattern = nextPattern;
+      lastPattern = curPattern; lastSongId = s.id;
+      shown = true; phase = "intro"; setAir(opts.test);
+      if (!opts.test) addHistory(s);
+      // first the centred "Title> / NOW PLAYING> / Artist>" card, then the telop motion
+      done([playIntro()]).then(() => {
+        if (token !== playToken || !shown) return;
+        phase = "main";
+        done(pattern(curPattern).in(els())).then(() => {
+          if (token !== playToken || !shown) return;
+          [...$("#fx").children].forEach(d => { if (!d.dataset.keep && !d.dataset.idle) d.remove(); });   // drop finished entrance effects
+          startIdle();
+        });
+      });
+      const sec = opts.test ? 7 : (OUTPUT ? 0 : +$("#s-auto").value);
+      if (sec > 0) hideTimer = setTimeout(hide, sec * 1000 + INTRO_MS);
+    };
+    if (shown) {
+      stopIdle();
+      done(leave()).then(go);
+    } else go();
+  }
+  // ---------- intro card ----------
+  const INTRO_MS = 3000;
+  let phase = "main";
+  function fillIntro(s) {
+    $("#iWork").textContent = s.work || ""; $("#irWork").hidden = !s.work;
+    $("#iTitle").textContent = s.title || "";
+    $("#iArtist").textContent = s.artist || ""; $("#irArtist").hidden = !s.artist;
+  }
+  const playIntro = () => $("#intro").animate([
+    { opacity: 0, transform: "translateY(1.2cqh)", filter: "blur(.3cqw)" },
+    { opacity: 1, transform: "translateY(0cqh)", filter: "blur(0cqw)", offset: .14 },
+    { opacity: 1, transform: "translateY(0cqh)", filter: "blur(0cqw)", offset: .86 },
+    { opacity: 0, transform: "translateY(-1.2cqh)", filter: "blur(.3cqw)" }], { duration: INTRO_MS, easing: "ease-in-out", fill: "none" });
+  // leave whatever is on screen: during the intro just fade it, otherwise the pattern's own exit
+  function leave() {
+    if (phase !== "intro") return runOut();
+    phase = "main";
+    const el = $("#intro"), o = getComputedStyle(el).opacity;
+    stopAll();
+    return [el.animate([{ opacity: o }, { opacity: 0 }], { duration: 250, easing: "ease-in" })];
+  }
+  function hide() {
+    clearTimeout(hideTimer);
+    if (liveOnOutput) { liveOnOutput = false; lastLiveSong = null; tx("hide"); }
+    const t = $("#telop");
+    if (!shown) return;
+    const token = ++playToken;
+    shown = false; setAir();
+    stopIdle();
+    done(leave()).then(() => {
+      if (token !== playToken) return;
+      stopAll();
+      t.classList.add("ghost");
+      if (PREVIEW) pvStill();
+    });
+  }
+  let airTest = false;
+  function setAir(test) {
+    if (test !== undefined) airTest = !!test;
+    if (!shown) airTest = false;
+    const o = $("#onair"), parts = [];
+    if (noticeShown) parts.push("注意事項");
+    else if (shown) parts.push(pattern(curPattern).name);
+    if (announceShown) parts.push("案内");
+    o.textContent = parts.length ? `${shown && airTest ? "TEST" : "ON AIR"} · ${parts.join(" ＋ ")}` : "STANDBY";
+    o.classList.toggle("on", parts.length > 0);
+    const la = $("#liveAnim b");
+    if (la && !OUTPUT) la.textContent = noticeShown ? "注意事項を表示中" : shown ? pattern(curPattern).name : "—";
+    if (!OUTPUT && shown === false) updatePreview();
+  }
+  function select(id, show) {
+    selectedId = id;
+    document.querySelectorAll("#list .row").forEach(r => r.classList.toggle("sel", r.dataset.id === id));
+    updateNow();
+    if (show) showSong(byId(id));
+  }
+  function playSet(i) {
+    if (i < 0 || i >= setlist.length) { toast(i < 0 ? "セットリストの先頭です" : "セットリストの最後です"); return; }
+    setPos = i; selectedId = setlist[i];
+    render(); showSong(byId(setlist[i]));
+  }
+
+  // ---------- events ----------
+  $("#q").addEventListener("input", render);
+  $("#q").addEventListener("keydown", e => { if (e.key === "Enter") { const f = filtered()[0]; if (f) select(f.id, true); } });
+  $("#list").addEventListener("click", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    const id = row.dataset.id, act = e.target.closest("[data-act]")?.dataset.act;
+    if (act === "edit") { openEdit(id); return; }
+    select(id, false);
+  });
+  $("#list").addEventListener("dblclick", e => { const row = e.target.closest(".row"); if (row && !e.target.closest("[data-act]")) select(row.dataset.id, true); });
+  $("#hist").addEventListener("click", e => {
+    if (!e.target.closest("[data-act=rm]")) return;
+    const i = +e.target.closest(".row").dataset.i;
+    const gone = history.splice(i, 1)[0]; saveHistory(); renderSet();
+    toast(`「${gone.title}」の記録を消しました`, { label: "元に戻す", run: () => { history.splice(i, 0, gone); saveHistory(); renderSet(); } });
+  });
+  $("#histClear").addEventListener("click", e => {
+    if (!history.length) return;
+    if (!arm(e.currentTarget, `もう一度押すと ${history.length} 件を消します`)) return;
+    const before = history.slice(); history = []; saveHistory(); renderSet();
+    e.currentTarget.classList.remove("armed"); e.currentTarget.textContent = "履歴を消す";
+    toast(`履歴（${before.length} 件）を消しました`, { label: "元に戻す", run: () => { history = before; saveHistory(); renderSet(); } });
+  });
+  $("#histExport").addEventListener("click", () => {
+    if (!history.length) { toast("まだ記録はありません"); return; }
+    const q = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    const csv = "﻿番号,表示した日時,曲名,作品,アーティスト\r\n" + history.map((h, i) => [i + 1, fmtDate(h.t), h.title, h.work, h.artist].map(v => q(String(v))).join(",")).join("\r\n") + "\r\n";
+    const d = new Date(), name = `telop_history_${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.csv`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast(`${name} を保存しました`);
+  });
+  $("#reloadBtn").addEventListener("click", async () => {
+    try { await loadServer(); setPos = -1; render(); toast(`songs.csv を読み込みました（${songs.length} 曲）`); }
+    catch (e) { toast("読み込めませんでした。アプリが止まっている可能性があります。いったん閉じて、あにてろを起動し直してください"); }
+  });
+
+  $("#showBtn").addEventListener("click", () => showSong(byId(selectedId) || (!selectedId && manualSong) || null));
+  $("#hideBtn").addEventListener("click", hide);
+  // ---------- preview of the next song (an iframe running this page with ?preview=1) ----------
+  const SAMPLE = { id: "", title: "曲名がここに大きく出ます", artist: "アーティスト名", work: "タイアップ作品名", type: "OP", year: "" };
+  const nextSong = () => byId(selectedId) || (!selectedId && manualSong) || null;
+  const pvPost = m => { try { $("#pvFrame")?.contentWindow?.postMessage({ pv: 1, ...m }, "*"); } catch (e) {} };
+  let pvTimer = null;
+  function updatePreview() {
+    if (OUTPUT) return;
+    const s = nextSong(), i = peekPattern(s ? s.id : ""), mode = $("#s-anim").value;
+    const b = $("#pvAnim b");
+    if (b) b.innerHTML = esc(pattern(i).name) + (mode === "random" ? " <small>（ランダムで決定）</small>" : mode === "order" ? " <small>（順番）</small>" : "");
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(() => pvPost({ type: "still", song: plainSong(s || SAMPLE) }), 30);
+  }
+  $("#tryBtn").addEventListener("click", () => {
+    const s = nextSong() || SAMPLE;
+    pvPost({ type: "try", song: plainSong(s), pattern: peekPattern(s.id) });
+    $(".pvbox").classList.add("trying"); clearTimeout($(".pvbox")._t); $(".pvbox")._t = setTimeout(() => $(".pvbox").classList.remove("trying"), 10600);
+  });
+  ["#s-layout", "#s-bg", "#s-auto", "#s-anim", "#s-idle", "#s-loop", "#s-font", "#s-wsize", "#s-tsize"].forEach(s => $(s).addEventListener("change", applyStage));
+  const SET_IDS = ["s-layout", "s-bg", "s-anim", "s-idle", "s-loop", "s-font", "s-wsize", "s-tsize"];
+  function stageSettings() { const o = {}; SET_IDS.forEach(id => o[id] = $("#" + id).value); return o; }
+  function applyStage() {
+    $("#stage").dataset.font = $("#s-font").value;
+    $("#stage").style.setProperty("--ws", $("#s-wsize").value);
+    $("#stage").style.setProperty("--ts", $("#s-tsize").value);
+    if (document.fonts) document.fonts.load(`40px "${getComputedStyle($("#stage")).getPropertyValue("--tf").trim().replace(/"/g, "")}"`).catch(() => {});
+    if (shown) startIdle();
+    const st = $("#stage");
+    st.classList.toggle("lay-center", $("#s-layout").value === "center");
+    st.classList.remove("bg-grad", "bg-green", "bg-blue");
+    const bg = $("#s-bg").value; if (bg !== "black") st.classList.add("bg-" + bg);
+    tx("settings", { s: stageSettings() });
+    if (!OUTPUT) { pvPost({ type: "settings", s: stageSettings() }); updatePreview(); }
+    if (!OUTPUT) try { localStorage.setItem(LKEY + "-ui", JSON.stringify({ l: $("#s-layout").value, b: bg, a: $("#s-auto").value, m: $("#s-anim").value, i: $("#s-idle").value, lp: $("#s-loop").value, f: $("#s-font").value, ws: $("#s-wsize").value, ts: $("#s-tsize").value })); } catch (e) {}
+  }
+  try { const u = JSON.parse(localStorage.getItem(LKEY + "-ui") || "null"); if (u) { $("#s-layout").value = u.l; $("#s-bg").value = u.b; $("#s-auto").value = u.a; if (u.m) $("#s-anim").value = u.m; if (u.i) $("#s-idle").value = u.i; if (u.lp) $("#s-loop").value = u.lp; if (u.f) $("#s-font").value = u.f; if (u.ws) $("#s-wsize").value = u.ws; if (u.ts) $("#s-tsize").value = u.ts; } } catch (e) {}
+  applyStage();
+
+  const sbox = $("#stagebox");
+  let wake = null;
+  async function enterFull() {
+    sbox.classList.add("full");
+    try { await sbox.requestFullscreen?.(); } catch (e) {}
+    try { wake = await navigator.wakeLock?.request("screen"); } catch (e) {}
+  }
+  function exitFull() {
+    sbox.classList.remove("full");
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    try { wake?.release(); } catch (e) {} wake = null;
+  }
+  $("#fsBtn").addEventListener("click", enterFull);
+  $("#exitFs").addEventListener("click", exitFull);
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) sbox.classList.remove("full"); });
+  document.addEventListener("keydown", e => {
+    if (OUTPUT) return;   // the output window is not operated directly
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+    const full = sbox.classList.contains("full");
+    if (typing && !full) return;
+    if (e.key === "Escape" && full) { exitFull(); return; }
+    if (e.key === " ") { e.preventDefault(); if (noticeShown) hideNotice(); else if (shown) hide(); else showSong(byId(selectedId) || byId(setlist[setPos]) || manualSong); }
+    else if (e.key === "n" || e.key === "N") { e.preventDefault(); noticeShown ? hideNotice() : showNotice(); }
+    else if (e.key === "a" || e.key === "A") { e.preventDefault(); toggleAnnounce("free"); }
+    else if (e.key === "1") { e.preventDefault(); toggleAnnounce("p1"); }
+    else if (e.key === "2") { e.preventDefault(); toggleAnnounce("p2"); }
+    else if (e.key === "f" || e.key === "F") { if (!full) enterFull(); }
+  });
+
+  // ---------- edit form ----------
+  function openEdit(id) {
+    editingId = id || null;
+    const s = id ? byId(id) : {};
+    F.forEach(k => $("#f-" + k).value = s?.[k] || "");
+    $("#editTitle").textContent = id ? "曲を編集" : "曲を登録";
+    $("#delBtn").hidden = !id; $("#delBtn").textContent = "この曲を削除"; $("#delBtn").dataset.armed = "";
+    $("#editCard").hidden = false;
+    $("#f-title").focus();
+    $("#editCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  $("#newBtn").addEventListener("click", () => openEdit(null));
+  $("#cancelBtn").addEventListener("click", () => { $("#editCard").hidden = true; });
+  $("#form").addEventListener("submit", e => {
+    e.preventDefault();
+    const r = {}; F.forEach(k => r[k] = $("#f-" + k).value.trim());
+    if (editingId) { const i = songs.findIndex(s => s.id === editingId); if (i >= 0) songs[i] = { id: editingId, ...clean({ ...r, src: songs[i].src }) }; toast("保存しました"); }
+    else { songs.push({ id: uid(), ...clean({ ...r, src: "手入力" }) }); toast(`「${r.title}」を登録しました`); }
+    persist(); render();
+    $("#editCard").hidden = true;
+  });
+  $("#delBtn").addEventListener("click", () => {
+    const b = $("#delBtn");
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "もう一度押すと削除します"; return; }
+    songs = songs.filter(s => s.id !== editingId);
+    setlist = setlist.filter(x => x !== editingId);
+    persist(); render(); toast("削除しました");
+    $("#editCard").hidden = true;
+  });
+
+  // ---------- CSV ----------
+  function parseCSV(text) {
+    text = String(text || "").replace(/^﻿/, "");
+    const first = text.split("\n")[0];
+    const delim = (first.match(/\t/g) || []).length > (first.match(/,/g) || []).length ? "\t" : ",";
+    const rows = []; let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === delim) { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+      else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(r => r.some(x => x.trim()));
+  }
+  const HEAD = { title: ["曲名", "タイトル", "title", "song"], kana: ["読み", "よみ", "ふりがな", "kana", "reading"], artist: ["アーティスト", "歌手", "artist", "歌"], work: ["作品", "作品名", "タイアップ", "アニメ", "work", "anime"], type: ["種別", "用途", "type"], year: ["年", "放送年", "year"], src: ["取り込み元", "source"] };
+  function toRecords(rows) {
+    if (!rows.length) return [];
+    const head = rows[0].map(h => norm(h)), map = {};
+    for (const [k, names] of Object.entries(HEAD)) { const i = head.findIndex(h => names.some(n => norm(n) === h)); if (i >= 0) map[k] = i; }
+    let body = rows;
+    if (map.title !== undefined) body = rows.slice(1); else F.forEach((k, i) => map[k] = i);
+    return body.map(r => { const o = {}; for (const k in map) o[k] = (r[map[k]] || "").trim(); return o; }).filter(o => o.title);
+  }
+  function stamp() {
+    const d = new Date(), z = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}/${z(d.getMonth() + 1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+  }
+  function importText(text, srcName) {
+    const recs = toRecords(parseCSV(text));
+    const src = `${srcName}（${stamp()}）`;
+    if (!recs.length) { toast("曲を読み取れませんでした。1行目に「曲名」の見出しがあるか確認してください"); return; }
+    const have = new Set(songs.map(key));
+    const fresh = recs.filter(r => !have.has(key(r)));
+    fresh.forEach(r => songs.push({ id: uid(), ...clean({ ...r, src: r.src || src }) }));
+    persist(); render();
+    toast(`${fresh.length} 曲を取り込みました` + (recs.length - fresh.length ? `（重複 ${recs.length - fresh.length} 曲はスキップ）` : ""));
+    $("#csv").value = "";
+  }
+  $("#importBtn").addEventListener("click", () => importText($("#csv").value, "貼り付け"));
+  $("#csvFile").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const buf = new Uint8Array(rd.result);
+      let text;
+      try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+      catch (err) { text = new TextDecoder("shift_jis").decode(buf); }
+      importText(text, f.name);
+    };
+    rd.readAsArrayBuffer(f);
+    e.target.value = "";
+  });
+  $("#exportBtn").addEventListener("click", () => {
+    const blob = new Blob(["﻿" + toCSV()], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "anisong_db.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+
+  // ---------- manual entry (songs not in the database) ----------
+  const MF = ["title", "artist", "work"];
+  const manualValues = () => { const r = {}; MF.forEach(k => r[k] = $("#m-" + k).value.trim()); return r; };
+  $("#manualForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const r = manualValues();
+    if (!r.title) { toast("曲名を入力してください"); $("#m-title").focus(); return; }
+    manualSong = { id: "manual:" + norm(r.title) + "|" + norm(r.artist), manual: true, kana: "", type: "", year: "", ...r };
+    selectedId = null;
+    document.querySelectorAll("#list .row.sel").forEach(x => x.classList.remove("sel"));
+    updateNow();
+    showSong(manualSong);
+  });
+  $("#mSaveBtn").addEventListener("click", () => {
+    const r = manualValues();
+    if (!r.title) { toast("曲名を入力してください"); $("#m-title").focus(); return; }
+    const k = norm(r.title) + "|" + norm(r.artist);
+    const hit = songs.find(x => key(x) === k);
+    if (hit) { toast(`「${hit.title}」はすでにデータベースにあります`); select(hit.id, false); return; }
+    const s2 = { id: uid(), ...clean({ ...r, src: "手入力" }) };
+    songs.push(s2); persist(); render();
+    toast(`「${r.title}」をデータベースに登録しました`);
+  });
+  $("#mClearBtn").addEventListener("click", () => { MF.forEach(k => $("#m-" + k).value = ""); manualSong = null; updateNow(); $("#m-title").focus(); });
+  MF.forEach(k => $("#m-" + k).addEventListener("input", () => {   // typing here makes the typed song the next song (shown in the preview)
+    const r = manualValues();
+    if (!r.title) { if (!selectedId) { manualSong = null; updateNow(); } return; }
+    manualSong = { id: "manual:" + norm(r.title) + "|" + norm(r.artist), manual: true, kana: "", type: "", year: "", ...r };
+    selectedId = null; document.querySelectorAll("#list .row.sel").forEach(x => x.classList.remove("sel"));
+    updateNow();
+  }));
+  $("#list").addEventListener("click", e => {
+    if (e.target.closest("[data-act=manual]")) {
+      $("#m-title").value = $("#q").value.trim();
+      $("#manualCard").scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => $("#m-artist").focus(), 300);
+    }
+  });
+
+  let tt;
+  function toast(msg, action) {
+    const t = $("#toast");
+    t.textContent = msg;
+    if (action) {
+      const b = document.createElement("button");
+      b.className = "undo"; b.textContent = action.label;
+      b.addEventListener("click", () => { t.classList.remove("show"); action.run(); });
+      t.appendChild(b);
+    }
+    t.classList.add("show"); clearTimeout(tt);
+    tt = setTimeout(() => t.classList.remove("show"), action ? 10000 : 3200);
+  }
+
+  // ---------- bulk delete ----------
+  const NO_SRC = "（取り込み元の記録なし）";
+  function batches() {
+    const m = new Map();
+    for (const s of songs) {
+      const k = s.src || NO_SRC;
+      if (!m.has(k)) m.set(k, { name: k, count: 0, first: songs.indexOf(s) });
+      m.get(k).count++;
+    }
+    return [...m.values()].sort((a, b) => a.first - b.first);
+  }
+  function renderBatches() {
+    const box = $("#batches"), list = batches();
+    if (!list.length) {
+      box.innerHTML = `<div class="empty">削除できるデータはありません。</div>`;
+    } else {
+      box.innerHTML = list.map((b, i) => {
+        const m = b.name.match(/^(.*)（(\d{4}\/\d\d\/\d\d \d\d:\d\d)）$/);
+        const name = m ? m[1] : b.name, when = m ? `${m[2]} に取り込み` : (b.name === "手入力" ? "画面から登録した曲" : "");
+        return `<div class="batch" data-i="${i}">
+          <div style="min-width:0"><div class="bn" title="${esc(b.name)}">${esc(name)}</div>${when ? `<div class="bm">${esc(when)}</div>` : ""}</div>
+          <span class="bc">${b.count} 曲</span>
+          <button class="btn sm ghost danger" data-act="del">削除</button>
+        </div>`;
+      }).join("");
+    }
+    $("#deleteAllBtn").disabled = !songs.length;
+    $("#deleteAllBtn").classList.remove("armed");
+    $("#deleteAllBtn").textContent = "すべての曲を削除";
+    $("#deleteAllHint").textContent = songs.length ? `登録中の ${songs.length} 曲をすべて消します（履歴は残ります）` : "";
+  }
+  async function backupBeforeDelete() {
+    if (store.mode !== "server") return true;
+    await saving;
+    try { const r = await fetch("api/backup", { method: "POST" }); return r.ok; } catch (e) { return false; }
+  }
+  async function bulkDelete(pred, label) {
+    const before = { songs: songs.slice(), setlist: setlist.slice(), setPos };
+    const gone = songs.filter(pred);
+    if (!gone.length) return;
+    const ok = await backupBeforeDelete();
+    const ids = new Set(gone.map(s => s.id));
+    songs = songs.filter(s => !ids.has(s.id));
+    setlist = setlist.filter(id => !ids.has(id));
+    if (selectedId && ids.has(selectedId)) selectedId = null;
+    if (editingId && ids.has(editingId)) $("#editCard").hidden = true;
+    setPos = -1;
+    persist(); render();
+    toast(`${label}（${gone.length} 曲）を削除しました` + (ok ? "" : "。バックアップは作れませんでした"), {
+      label: "元に戻す",
+      run: () => { songs = before.songs; setlist = before.setlist; setPos = before.setPos; persist(); render(); toast("元に戻しました"); }
+    });
+  }
+  function arm(btn, text) {
+    if (btn.classList.contains("armed")) return true;
+    document.querySelectorAll(".btn.armed").forEach(b => { b.classList.remove("armed"); b.textContent = b.dataset.label || b.textContent; });
+    btn.dataset.label = btn.textContent;
+    btn.classList.add("armed"); btn.textContent = text;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.classList.remove("armed"); btn.textContent = btn.dataset.label; }, 4000);
+    return false;
+  }
+  $("#batches").addEventListener("click", e => {
+    const btn = e.target.closest("[data-act=del]"); if (!btn) return;
+    const b = batches()[+btn.closest(".batch").dataset.i]; if (!b) return;
+    if (!arm(btn, "もう一度押すと削除")) return;
+    const k = b.name;
+    bulkDelete(s => (s.src || NO_SRC) === k, `「${k.replace(/（\d{4}\/.*）$/, "")}」の曲`);
+  });
+  $("#deleteAllBtn").addEventListener("click", e => {
+    if (!arm(e.currentTarget, `もう一度押すと ${songs.length} 曲すべて削除`)) return;
+    bulkDelete(() => true, "すべての曲");
+  });
+
+  function pvStill(s) { if (s) pvSong = s; stopAll(); fillTelop(pvSong); $("#telop").classList.add("still"); }
+  let pvSong = { title: "曲名がここに大きく出ます", artist: "アーティスト名", work: "タイアップ作品名", type: "OP", year: "" };
+  // ---------- two-screen wiring ----------
+  if (PREVIEW) {
+    document.body.classList.add("output", "preview");
+    document.body.appendChild(sbox);
+    sbox.classList.add("full");
+    pvStill();
+    const applySettings = o => { if (!o) return; SET_IDS.forEach(id => { if (o[id] != null) $("#" + id).value = o[id]; }); applyStage(); };
+    window.addEventListener("message", ev => {
+      if (ev.source !== window.parent) return;
+      const m = ev.data || {};
+      if (!m.pv) return;
+      if (m.type === "settings") applySettings(m.s);
+      else if (m.type === "still") { pvSong = m.song; if (!shown) pvStill(); }
+      else if (m.type === "try") { pvSong = m.song; $("#telop").classList.remove("still"); stopAll(); shown = false; showSong(m.song, { test: true, pattern: m.pattern }); }
+    });
+    window.parent.postMessage({ pv: 1, type: "ready" }, "*");
+  } else if (OUTPUT) {
+    document.title = "あにてろ（出力）";
+    document.body.classList.add("output");
+    document.body.appendChild(sbox);
+    sbox.classList.add("full");
+    const hint = document.createElement("div");
+    hint.className = "outhint";
+    hint.innerHTML = "これは<b>出力ウィンドウ</b>です。プロジェクターの画面へ移動して、<b>ダブルクリック</b>（または <b>F</b> キー）で全画面にしてください。<br>操作は元の画面で行います。全画面の解除は Esc です。";
+    document.body.appendChild(hint);
+    const goFull = () => { document.documentElement.requestFullscreen?.().catch(() => {}); };
+    document.addEventListener("dblclick", goFull);
+    document.addEventListener("keydown", e => { if (e.key === "f" || e.key === "F") goFull(); }, true);
+    let ht = null;
+    const showHint = ms => { clearTimeout(ht); hint.hidden = !!document.fullscreenElement; if (!hint.hidden) ht = setTimeout(() => hint.hidden = true, ms); };
+    const syncHint = () => { sbox.classList.add("full"); showHint(10000); };
+    document.addEventListener("fullscreenchange", syncHint);
+    showHint(12000);
+    let ct = null;
+    const wake = () => { document.body.classList.remove("idlecursor"); clearTimeout(ct); ct = setTimeout(() => document.body.classList.add("idlecursor"), 2000); if (hint.hidden && !document.fullscreenElement) showHint(4000); };
+    document.addEventListener("mousemove", wake); wake();
+    try { navigator.wakeLock?.request("screen").catch(() => {}); } catch (e) {}
+    const applySettings = o => { if (!o) return; SET_IDS.forEach(id => { if (o[id] != null) $("#" + id).value = o[id]; }); applyStage(); };
+    const applyNotice = m => { if (m.on) { notice = { ...notice, ...m.data }; noticeShown ? renderNotice() : showNotice(); } else hideNotice(); };
+    const applyAnnounce = m => {
+      if (!m.on) { hideAnnounce(); return; }
+      notice = { ...notice, announce: m.text, apos: m.apos, apanel: m.apanel }; announceSrc = "free";
+      renderAnnounce(); $("#announce").hidden = false; announceShown = true; fitAnnounce(); setAir();
+    };
+    if (bc) bc.onmessage = ev => {
+      const m = ev.data || {};
+      if (m.type === "settings") applySettings(m.s);
+      else if (m.type === "show") showSong(m.song, { pattern: m.pattern, remote: true });
+      else if (m.type === "hide") hide();
+      else if (m.type === "notice") applyNotice(m);
+      else if (m.type === "announce") applyAnnounce(m);
+      else if (m.type === "state") {
+        applySettings(m.s);
+        if (m.notice && m.notice.on) applyNotice(m.notice);
+        else { hideNotice(); if (m.song) showSong(m.song, { pattern: m.pattern, remote: true }); else hide(); }
+        applyAnnounce(m.announce || { on: false });
+      }
+    };
+    const hello = () => bc && bc.postMessage({ type: "hello" });
+    hello(); setInterval(() => bc && bc.postMessage({ type: "ping" }), 1500);
+  } else {
+    let lastPing = 0, outWin = null;
+    const setOut = () => {
+      const ok = Date.now() - lastPing < 4000, el = $("#outStatus");
+      el.textContent = ok ? "出力ウィンドウ：接続中" : "出力ウィンドウ：未接続"; el.classList.toggle("ok", ok);
+    };
+    setInterval(setOut, 1000);
+    if (bc) bc.onmessage = ev => {
+      const m = ev.data || {};
+      if (m.type === "ping" || m.type === "hello") { lastPing = Date.now(); setOut(); }
+      if (m.type === "hello") tx("state", {
+        s: stageSettings(),
+        song: liveOnOutput ? lastLiveSong : null, pattern: curPattern,
+        notice: { on: noticeShown, data: notice },
+        announce: { on: announceShown, text: announceText(announceSrc), apos: notice.apos, apanel: notice.apanel } });
+    };
+    $("#outBtn").addEventListener("click", async () => {
+      if (!bc) { toast("このブラウザは2画面表示に対応していません。Microsoft Edge か Google Chrome で開いてください"); return; }
+      if (outWin && !outWin.closed) { outWin.focus(); toast("出力ウィンドウはすでに開いています"); return; }
+      outWin = window.open("index.html?output=1", "anisong-output", "popup,width=1280,height=720");
+      if (!outWin) { toast("出力ウィンドウを開けませんでした。ポップアップがブロックされていないか確認してください"); return; }
+      try {   // move it onto the other screen when the browser allows it (Edge/Chrome ask once for permission)
+        if (window.getScreenDetails) {
+          const sd = await window.getScreenDetails();
+          const other = sd.screens.find(x => x !== sd.currentScreen);
+          if (other) { outWin.moveTo(other.availLeft, other.availTop); outWin.resizeTo(other.availWidth, other.availHeight); toast("出力ウィンドウをもう一方の画面に開きました。ダブルクリックで全画面にしてください"); return; }
+        }
+      } catch (e) {}
+      toast("出力ウィンドウを開きました。プロジェクターの画面へドラッグして、ダブルクリックで全画面にしてください");
+    });
+    window.addEventListener("beforeunload", () => { try { outWin && !outWin.closed && outWin.close(); } catch (e) {} });
+    $("#pvFrame").src = "index.html?preview=1";   // only the console loads the preview (never the preview or output page itself)
+    window.addEventListener("message", ev => {
+      const m = ev.data || {};
+      if (m.pv && m.type === "ready" && ev.source === $("#pvFrame").contentWindow) { pvPost({ type: "settings", s: stageSettings() }); updatePreview(); }
+    });
+  }
+
+  // keep the local server alive while the app is open, and let it stop by itself when the console window is closed
+  if (location.protocol.startsWith("http") && !PREVIEW) {
+    setInterval(() => fetch("api/ping", { cache: "no-store" }).catch(() => {}), 15000);
+    if (!OUTPUT) addEventListener("pagehide", () => { try { navigator.sendBeacon("api/quit", ""); } catch (e) {} });
+  }
+
+  initStore();
+})();
+</script>
+</body>
+</html>

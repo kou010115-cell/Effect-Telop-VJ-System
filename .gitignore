@@ -1,0 +1,6 @@
+# runtime data written by the app
+history.json
+notice.json
+setlist.json
+songs.backup.csv
+backup/
