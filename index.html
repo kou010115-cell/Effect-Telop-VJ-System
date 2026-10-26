@@ -212,6 +212,7 @@ body.output.idlecursor{cursor:none}
 .vdir{grid-column:1/-1}
 .vrow{display:flex;gap:8px;align-items:center}.vrow input{flex:1 1 auto;min-width:0}
 #vCount.warn{color:#ff8a8a}
+.stage.mode-video .telop,.stage.mode-video .intro{visibility:hidden}
 .pvwrap{display:grid;grid-template-columns:minmax(0,56%) minmax(0,1fr);gap:14px;align-items:end}
 .pvside{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}.pvside .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.pvside .animro{white-space:normal;flex-wrap:wrap;border-radius:12px}
 .pvbox{position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:2px solid var(--sun);background:#000}
@@ -273,7 +274,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>あにてろ</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.0</span>
+    <span class="kbd" title="アプリのバージョン">V2.1</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -434,8 +435,8 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
             <span class="hint" id="vCount"></span></div>
           <div class="field"><label for="s-layout">レイアウト</label>
             <select id="s-layout"><option value="lower">下部テロップ</option><option value="center">センター</option></select></div>
-          <div class="field"><label for="s-bg">背景</label>
-            <select id="s-bg"><option value="video">エフェクト動画</option><option value="grad">ステージ（暗）</option><option value="black">黒</option><option value="green">グリーンバック</option><option value="blue">ブルーバック</option></select></div>
+          <div class="field"><label for="s-bg">表示モード</label>
+            <select id="s-bg" title="テロップとエフェクト動画のどちらを出すか"><option value="both">テロップ＋エフェクト動画</option><option value="telop">テロップのみ（背景は黒）</option><option value="video">エフェクト動画のみ</option></select></div>
           <div class="field"><label for="s-anim">動き</label>
             <select id="s-anim">
               <option value="random">ランダム（曲ごとに変わる）</option>
@@ -1250,7 +1251,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 
   // ---------- effect videos (full-screen background behind the telop) ----------
   // Two <video> layers: the next video fades in on top of the current one, so there is never a black gap.
-  const useVideo = () => $("#s-bg").value === "video";
+  // display mode: "both" = effect video + telop, "telop" = telop only on black, "video" = effect video only
+  const dispMode = () => { const v = $("#s-bg").value; return v === "telop" || v === "video" ? v : "both"; };
+  const useVideo = () => dispMode() !== "telop";
   const VB = { els: [...document.querySelectorAll("#vbg video")], cur: null, seq: 0 };
   let curVideo = null, vcat = { songs: [], common: [], ok: false, dir: "" };
   const vbase = f => String(f || "").replace(/^.*\//, "").replace(/\.[^.]+$/, "");
@@ -1395,7 +1398,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     o.textContent = parts.length ? `${shown && airTest ? "TEST" : "ON AIR"} · ${parts.join(" ＋ ")}` : "STANDBY";
     o.classList.toggle("on", parts.length > 0);
     if (!OUTPUT && $("#livePat")) {
-      $("#livePat").textContent = noticeShown ? "注意事項を表示中" : shown ? pattern(curPattern).name : "—";
+      $("#livePat").textContent = noticeShown ? "注意事項を表示中" : !shown ? "—" : dispMode() === "video" ? "（テロップなし）" : pattern(curPattern).name;
       $("#liveVid").textContent = shown && curVideo ? vbase(curVideo.f) : "—";
     }
     if (!OUTPUT && shown === false) updatePreview();
@@ -1469,7 +1472,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     ps.value = String(i);
     // effect video: random from the song's own videos (or the general ones), or chosen by hand here
     const vs = $("#pvVideo"), v = peekVideo(s), { list, own } = videosFor(s);
-    if (!useVideo()) { vs.innerHTML = `<option>（背景が「エフェクト動画」ではありません）</option>`; vs.disabled = true; }
+    ps.disabled = dispMode() === "video";
+    if (ps.disabled) ps.innerHTML = `<option>（エフェクト動画のみのモードです）</option>`;
+    if (!useVideo()) { vs.innerHTML = `<option>（テロップのみのモードです）</option>`; vs.disabled = true; }
     else if (!list.length) { vs.innerHTML = `<option>（使える動画がありません）</option>`; vs.disabled = true; }
     else {
       const hand = pendV && pendV.hand;
@@ -1510,14 +1515,15 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     if (shown) startIdle();
     const st = $("#stage");
     st.classList.toggle("lay-center", $("#s-layout").value === "center");
-    st.classList.remove("bg-grad", "bg-green", "bg-blue", "bg-video");
-    const bg = $("#s-bg").value; if (bg !== "black") st.classList.add("bg-" + bg);
-    if (bg !== "video") vHide();
+    st.classList.remove("bg-grad", "bg-green", "bg-blue", "bg-video", "mode-video");
+    const bg = dispMode();
+    if (bg !== "telop") st.classList.add("bg-video"); else vHide();
+    st.classList.toggle("mode-video", bg === "video");
     tx("settings", { s: stageSettings() });
     if (!OUTPUT) { pvPost({ type: "settings", s: stageSettings() }); updatePreview(); }
-    if (!OUTPUT) try { localStorage.setItem(LKEY + "-ui", JSON.stringify({ l: $("#s-layout").value, b: bg, a: $("#s-auto").value, m: $("#s-anim").value, i: $("#s-idle").value, lp: $("#s-loop").value, f: $("#s-font").value, ws: $("#s-wsize").value, ts: $("#s-tsize").value })); } catch (e) {}
+    if (!OUTPUT) try { localStorage.setItem(LKEY + "-ui", JSON.stringify({ l: $("#s-layout").value, mode: bg, b: bg, a: $("#s-auto").value, m: $("#s-anim").value, i: $("#s-idle").value, lp: $("#s-loop").value, f: $("#s-font").value, ws: $("#s-wsize").value, ts: $("#s-tsize").value })); } catch (e) {}
   }
-  try { const u = JSON.parse(localStorage.getItem(LKEY + "-ui") || "null"); if (u) { $("#s-layout").value = u.l; $("#s-bg").value = u.b; $("#s-auto").value = u.a; if (u.m) $("#s-anim").value = u.m; if (u.i) $("#s-idle").value = u.i; if (u.lp) $("#s-loop").value = u.lp; if (u.f) $("#s-font").value = u.f; if (u.ws) $("#s-wsize").value = u.ws; if (u.ts) $("#s-tsize").value = u.ts; } } catch (e) {}
+  try { const u = JSON.parse(localStorage.getItem(LKEY + "-ui") || "null"); if (u) { $("#s-layout").value = u.l; $("#s-bg").value = ["both", "telop", "video"].includes(u.mode) ? u.mode : "both"; $("#s-auto").value = u.a; if (u.m) $("#s-anim").value = u.m; if (u.i) $("#s-idle").value = u.i; if (u.lp) $("#s-loop").value = u.lp; if (u.f) $("#s-font").value = u.f; if (u.ws) $("#s-wsize").value = u.ws; if (u.ts) $("#s-tsize").value = u.ts; } } catch (e) {}
   applyStage();
 
   const sbox = $("#stagebox");
