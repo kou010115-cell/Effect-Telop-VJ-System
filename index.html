@@ -274,7 +274,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>あにてろ</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.1</span>
+    <span class="kbd" title="アプリのバージョン">V2.2</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -1291,11 +1291,31 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     VB.els.forEach(x => x.classList.remove("on"));
     setTimeout(() => VB.els.forEach(x => { if (x !== VB.cur) x.pause(); }), 900);
   }
-  // Videos named "<song title>_<number>.mp4" belong to that song; songs without one use the general-purpose folder.
+  // File names: "<title>_<number>.mp4" is used for every song with that title;
+  // "<title>_<work or artist>_<number>.mp4" only for the song whose work (or artist) matches — this separates
+  // songs that share a title (e.g. 色彩 from Fate/Grand Order and from SPY×FAMILY). Priority:
+  // videos with a matching work/artist → videos with only the title → the general-purpose folder.
+  function videoTag(v, nt) {   // null: another song / "": title only / otherwise the work-or-artist part
+    const parts = vbase(v.f).split("_");
+    for (let k = 1; k <= parts.length; k++) {
+      if (norm(parts.slice(0, k).join("_")) !== nt) continue;
+      return parts.slice(k).filter(x => !/^\s*\d+\s*$/.test(x)).map(norm).filter(Boolean).join("_");
+    }
+    return null;
+  }
   function videosFor(s) {
     const nt = s && s.title ? norm(s.title) : "";
-    const own = nt ? vcat.songs.filter(v => { const nb = norm(vbase(v.f)); return nb === nt || nb.startsWith(nt + "_"); }) : [];
-    return own.length ? { list: own, own: true } : { list: vcat.common || [], own: false };
+    if (!nt) return { list: vcat.common || [], own: false };
+    const nw = norm(s.work), na = norm(s.artist), tagged = [], plain = [];
+    vcat.songs.forEach(v => {
+      const tag = videoTag(v, nt);
+      if (tag === null) return;
+      if (tag === "") plain.push(v);
+      else if (tag.split("_").every(t => (nw && nw.includes(t)) || (na && na.includes(t)))) tagged.push(v);
+    });
+    if (tagged.length) return { list: tagged, own: true };
+    if (plain.length) return { list: plain, own: true };
+    return { list: vcat.common || [], own: false };
   }
   let pendV = null, lastVideoF = null;
   const songKey = s => s ? (s.id || "") : "";
