@@ -199,6 +199,19 @@ body.output.idlecursor{cursor:none}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .arow{display:flex;gap:8px;align-items:stretch}.arow input{flex:1 1 auto;min-width:0}.arow .btn{flex:0 0 auto;white-space:nowrap}
 .settings[hidden]{display:none}
+.vbg{position:absolute;inset:0;z-index:0;pointer-events:none;background:#000;display:none}
+.stage.bg-video{background:#000}.stage.bg-video .vbg{display:block}
+.vbg video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .85s ease}
+.vbg video.on{opacity:1}
+.stage.bg-video .telop .title,.stage.bg-video .telop .work,.stage.bg-video .telop .artist,.stage.bg-video .intro .v,.stage.bg-video .intro .k{text-shadow:0 0 .07em rgba(0,0,0,.95),0 0 .22em rgba(0,0,0,.85),0 .05em .5em rgba(0,0,0,.75)}
+.pvsel{display:flex;align-items:center;gap:8px;width:100%;font-size:12.5px;color:var(--mute)}
+.pvsel span{flex:0 0 auto;width:2.6em}
+.pvsel select{flex:1 1 auto;min-width:0;background:var(--raise);border:1px solid var(--line);border-radius:7px;padding:5px 8px;color:var(--ink);font-size:12.5px}
+.pvsel select:disabled{opacity:.6}
+.pvbtns{display:flex;gap:8px;flex-wrap:wrap}
+.vdir{grid-column:1/-1}
+.vrow{display:flex;gap:8px;align-items:center}.vrow input{flex:1 1 auto;min-width:0}
+#vCount.warn{color:#ff8a8a}
 .pvwrap{display:grid;grid-template-columns:minmax(0,56%) minmax(0,1fr);gap:14px;align-items:end}
 .pvside{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}.pvside .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.pvside .animro{white-space:normal;flex-wrap:wrap;border-radius:12px}
 .pvbox{position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:2px solid var(--sun);background:#000}
@@ -260,7 +273,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>あにてろ</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V1.4</span>
+    <span class="kbd" title="アプリのバージョン">V2.0</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -371,6 +384,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
         <div class="stagebox" id="stagebox">
           <div class="stage bg-grad" id="stage">
             <span class="onair" id="onair">STANDBY</span>
+            <div class="vbg" id="vbg"><video muted playsinline loop preload="auto" disablepictureinpicture></video><video muted playsinline loop preload="auto" disablepictureinpicture></video></div>
             <div class="fx" id="fx"></div>
             <div class="announce pos-top" id="announce" hidden><div class="ap" id="aOut"></div></div>
             <div class="notice" id="notice" hidden><div class="np"><h3 id="nTitle"></h3><ul id="nList"></ul></div></div>
@@ -392,7 +406,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
           <button class="btn live" id="showBtn" disabled>▶ 表示</button>
           <button class="btn" id="hideBtn">■ 消す</button>
           <span class="spacer"></span>
-          <span class="animro" id="liveAnim" title="いま出力中の動き（確認用）"><i>動き</i><b>—</b></span>
+          <span class="animro" id="liveAnim" title="いま出力中の動画と動き（確認用）"><i>動画</i><b id="liveVid">—</b><i>動き</i><b id="livePat">—</b></span>
         </div>
       </section>
 
@@ -402,8 +416,12 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
           <div class="pvbox"><iframe id="pvFrame" title="次の曲のプレビュー" tabindex="-1"></iframe><span class="pvtag">PREVIEW</span></div>
           <div class="pvside">
             <span class="hint" id="nowLabel">曲を選んでください</span>
-            <span class="animro" id="pvAnim" title="次に表示したときの動き（確認用）"><i>動き</i><b>—</b></span>
-            <button class="btn" id="tryBtn" title="次の曲の動きを、このプレビューの中だけで再生します（本番には出ません）">▶ 動きを試す</button>
+            <label class="pvsel"><span>動画</span><select id="pvVideo" title="次に表示したときのエフェクト動画（ランダムで決まります。ここで別の動画に変えられます）"></select></label>
+            <label class="pvsel"><span>動き</span><select id="pvPat" title="次に表示したときのテロップの動き（ここで別の動きに変えられます）"></select></label>
+            <div class="pvbtns">
+              <button class="btn sm" id="rerollBtn" type="button" title="動画と動きを、もう一度ランダムで選び直します">⟳ 選び直す</button>
+              <button class="btn" id="tryBtn" title="次の曲の動きを、このプレビューの中だけで再生します（本番には出ません）">▶ 動きを試す</button>
+            </div>
           </div>
         </div>
       </section>
@@ -411,10 +429,13 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
       <section class="card" id="setCard">
         <h2>設定 <span class="act"><button class="btn sm ghost" id="setToggle" type="button" aria-controls="stageSettings" aria-expanded="true">▲ 隠す</button></span></h2>
         <div class="settings" id="stageSettings">
+          <div class="field vdir"><label for="vPathIn">エフェクト動画のフォルダ</label>
+            <div class="vrow"><input id="vPathIn" placeholder="例）E:\エフェクト動画" autocomplete="off" spellcheck="false"><button class="btn sm" id="vPick" type="button">フォルダを選ぶ</button><button class="btn sm ghost" id="vReload" type="button" title="フォルダの中の動画を読み直します（動画を追加・名前を変えたとき）">↻ 読み直す</button></div>
+            <span class="hint" id="vCount"></span></div>
           <div class="field"><label for="s-layout">レイアウト</label>
             <select id="s-layout"><option value="lower">下部テロップ</option><option value="center">センター</option></select></div>
           <div class="field"><label for="s-bg">背景</label>
-            <select id="s-bg"><option value="grad">ステージ（暗）</option><option value="black">黒</option><option value="green">グリーンバック</option><option value="blue">ブルーバック</option></select></div>
+            <select id="s-bg"><option value="video">エフェクト動画</option><option value="grad">ステージ（暗）</option><option value="black">黒</option><option value="green">グリーンバック</option><option value="blue">ブルーバック</option></select></div>
           <div class="field"><label for="s-anim">動き</label>
             <select id="s-anim">
               <option value="random">ランダム（曲ごとに変わる）</option>
@@ -1031,20 +1052,22 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   }
   let curPattern = 0, lastPattern = -1, lastSongId = null, orderIdx = -1, playToken = 0;
   // The next motion is decided ahead of time, so the preview shows (and "動きを試す" plays) the motion the live show will use.
-  let pending = null;
+  let pending = null, pOver = null, avoidPattern = -1;
   function peekPattern(songId) {
+    if (pOver && pOver.key === (songId || "")) return pOver.i;   // chosen by hand in the preview
     const mode = $("#s-anim").value;
     if (/^p\d+$/.test(mode)) return Math.min(PATTERNS.length, +mode.slice(1)) - 1;
     if (songId && songId === lastSongId && lastPattern >= 0) return lastPattern;   // same song again: keep its motion
     if (!pending || pending.mode !== mode) {
       let i;
       if (mode === "order") i = (orderIdx + 1) % PATTERNS.length;
-      else do { i = Math.floor(Math.random() * PATTERNS.length); } while (PATTERNS.length > 1 && i === lastPattern);
+      else do { i = Math.floor(Math.random() * PATTERNS.length); } while (PATTERNS.length > 2 && (i === lastPattern || i === avoidPattern));
       pending = { mode, i };
     }
     return pending.i;
   }
   function choosePattern(songId) {
+    if (pOver && pOver.key === (songId || "")) { const i = pOver.i; pOver = null; return i; }
     const i = peekPattern(songId), mode = $("#s-anim").value;
     if (pending && pending.i === i && !(songId && songId === lastSongId && lastPattern >= 0)) { if (mode === "order") orderIdx = i; pending = null; }
     return i;
@@ -1225,11 +1248,74 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   addEventListener("resize", syncLeft); syncLeft();
   if (window.ResizeObserver) new ResizeObserver(() => { if (noticeShown) fitNotice(); if (announceShown) fitAnnounce(); }).observe($("#stage"));
 
+  // ---------- effect videos (full-screen background behind the telop) ----------
+  // Two <video> layers: the next video fades in on top of the current one, so there is never a black gap.
+  const useVideo = () => $("#s-bg").value === "video";
+  const VB = { els: [...document.querySelectorAll("#vbg video")], cur: null, seq: 0 };
+  let curVideo = null, vcat = { songs: [], common: [], ok: false, dir: "" };
+  const vbase = f => String(f || "").replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+  const vurl = v => "video/" + v.f.split("/").map(encodeURIComponent).join("/") + "?t=" + (v.t || 0);
+  function vLoad(el, v) { const u = vurl(v); if (el.dataset.u !== u) { el.dataset.u = u; el.src = u; try { el.load(); } catch (e) {} } }
+  function vPreload(v) {   // get the next song's video ready in the hidden layer
+    if (!v || !useVideo()) return;
+    const u = vurl(v);
+    if (VB.cur && VB.cur.dataset.u === u) return;
+    const idle = VB.els.find(x => x !== VB.cur);
+    if (idle && idle.dataset.u !== u) { vLoad(idle, v); idle.pause(); }
+  }
+  function vShow(v) {
+    curVideo = v || null;
+    if (!v || !useVideo()) { vHide(); return; }
+    const u = vurl(v), seq = ++VB.seq;
+    if (VB.cur && VB.cur.dataset.u === u) { VB.cur.classList.add("on"); VB.cur.play().catch(() => {}); return; }
+    const prev = VB.cur, next = VB.els.find(x => x !== prev);
+    vLoad(next, v);
+    VB.cur = next;
+    try { if (next.currentTime > 0) next.currentTime = 0; } catch (e) {}
+    const go = () => {
+      if (seq !== VB.seq) return;
+      next.play().catch(() => {});
+      next.style.zIndex = 2; if (prev) prev.style.zIndex = 1;
+      next.classList.add("on");
+      if (prev) setTimeout(() => { if (VB.cur !== prev) { prev.classList.remove("on"); setTimeout(() => { if (VB.cur !== prev) prev.pause(); }, 900); } }, 900);
+    };
+    if (next.readyState >= 3) go();
+    else { let fired = false; const f = () => { if (fired) return; fired = true; go(); }; next.addEventListener("canplay", f, { once: true }); setTimeout(f, 2500); }
+  }
+  function vHide() {
+    VB.seq++;
+    VB.cur = null;
+    VB.els.forEach(x => x.classList.remove("on"));
+    setTimeout(() => VB.els.forEach(x => { if (x !== VB.cur) x.pause(); }), 900);
+  }
+  // Videos named "<song title>_<number>.mp4" belong to that song; songs without one use the general-purpose folder.
+  function videosFor(s) {
+    const nt = s && s.title ? norm(s.title) : "";
+    const own = nt ? vcat.songs.filter(v => { const nb = norm(vbase(v.f)); return nb === nt || nb.startsWith(nt + "_"); }) : [];
+    return own.length ? { list: own, own: true } : { list: vcat.common || [], own: false };
+  }
+  let pendV = null, lastVideoF = null;
+  const songKey = s => s ? (s.id || "") : "";
+  function peekVideo(s, avoid) {
+    if (!useVideo()) return null;
+    const { list } = videosFor(s); if (!list.length) return null;
+    const key = songKey(s);
+    if (pendV && pendV.key === key && list.some(v => v.f === pendV.v.f)) return pendV.v;
+    let pool = list.filter(v => v.f !== lastVideoF && v.f !== avoid);
+    if (!pool.length) pool = list.filter(v => v.f !== avoid);
+    if (!pool.length) pool = list;
+    pendV = { key, v: pool[Math.floor(Math.random() * pool.length)], hand: false };
+    return pendV.v;
+  }
+  function chooseVideo(s) { const v = peekVideo(s); pendV = null; if (v) lastVideoF = v.f; return v; }
+
   function showSong(s, opts = {}) {
     if (!s) return;
     hideNotice();
     const nextPattern = opts.pattern != null ? opts.pattern : choosePattern(s.id);
-    if (!opts.test) { liveOnOutput = true; lastLiveSong = plainSong(s); tx("show", { song: lastLiveSong, pattern: nextPattern }); }
+    const nextVideo = opts.video !== undefined ? opts.video : (OUTPUT ? null : chooseVideo(s));
+    if (!opts.test) { liveOnOutput = true; lastLiveSong = plainSong(s); tx("show", { song: lastLiveSong, pattern: nextPattern, video: nextVideo }); }
+    vShow(nextVideo);
     const t = $("#telop");
     clearTimeout(hideTimer); clearTimeout(ghostTimer);
     const token = ++playToken;
@@ -1287,7 +1373,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     const t = $("#telop");
     if (!shown) return;
     const token = ++playToken;
-    shown = false; setAir();
+    shown = false;
+    if (!PREVIEW) { vHide(); curVideo = null; }
+    setAir();
     stopIdle();
     done(leave()).then(() => {
       if (token !== playToken) return;
@@ -1306,8 +1394,10 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     if (announceShown) parts.push("案内");
     o.textContent = parts.length ? `${shown && airTest ? "TEST" : "ON AIR"} · ${parts.join(" ＋ ")}` : "STANDBY";
     o.classList.toggle("on", parts.length > 0);
-    const la = $("#liveAnim b");
-    if (la && !OUTPUT) la.textContent = noticeShown ? "注意事項を表示中" : shown ? pattern(curPattern).name : "—";
+    if (!OUTPUT && $("#livePat")) {
+      $("#livePat").textContent = noticeShown ? "注意事項を表示中" : shown ? pattern(curPattern).name : "—";
+      $("#liveVid").textContent = shown && curVideo ? vbase(curVideo.f) : "—";
+    }
     if (!OUTPUT && shown === false) updatePreview();
   }
   function select(id, show) {
@@ -1367,17 +1457,46 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   const nextSong = () => byId(selectedId) || (!selectedId && manualSong) || null;
   const pvPost = m => { try { $("#pvFrame")?.contentWindow?.postMessage({ pv: 1, ...m }, "*"); } catch (e) {} };
   let pvTimer = null;
+  let lastPre = "";
   function updatePreview() {
     if (OUTPUT) return;
-    const s = nextSong(), i = peekPattern(s ? s.id : ""), mode = $("#s-anim").value;
-    const b = $("#pvAnim b");
-    if (b) b.innerHTML = esc(pattern(i).name) + (mode === "random" ? " <small>（ランダムで決定）</small>" : mode === "order" ? " <small>（順番）</small>" : "");
+    const s = nextSong() || SAMPLE, id = s.id || "", i = peekPattern(id), mode = $("#s-anim").value;
+    // motion: chosen automatically (random / order / fixed), or by hand here
+    const handP = !!(pOver && pOver.key === id);
+    const autoTag = handP ? "" : /^p\d+$/.test(mode) ? "（設定で固定）" : mode === "order" ? "（順番）" : "（ランダム）";
+    const ps = $("#pvPat");
+    ps.innerHTML = PATTERNS.map((p, k) => `<option value="${k}">${esc(p.name)}${k === i ? autoTag : ""}</option>`).join("");
+    ps.value = String(i);
+    // effect video: random from the song's own videos (or the general ones), or chosen by hand here
+    const vs = $("#pvVideo"), v = peekVideo(s), { list, own } = videosFor(s);
+    if (!useVideo()) { vs.innerHTML = `<option>（背景が「エフェクト動画」ではありません）</option>`; vs.disabled = true; }
+    else if (!list.length) { vs.innerHTML = `<option>（使える動画がありません）</option>`; vs.disabled = true; }
+    else {
+      const hand = pendV && pendV.hand;
+      vs.innerHTML = list.map(x => `<option value="${esc(x.f)}">${own ? "" : "汎用："}${esc(vbase(x.f))}${v && x.f === v.f && !hand ? "（ランダム）" : ""}</option>`).join("");
+      vs.value = v ? v.f : ""; vs.disabled = false;
+    }
     clearTimeout(pvTimer);
-    pvTimer = setTimeout(() => pvPost({ type: "still", song: plainSong(s || SAMPLE) }), 30);
+    pvTimer = setTimeout(() => pvPost({ type: "still", song: plainSong(s), video: v }), 30);
+    const pre = v ? v.f : "";
+    if (pre !== lastPre) { lastPre = pre; if (v) { if (!shown) vPreload(v); tx("preload", { video: v }); } }
   }
+  $("#pvPat").addEventListener("change", e => { const s = nextSong() || SAMPLE; pOver = { key: s.id || "", i: +e.target.value }; updatePreview(); });
+  $("#pvVideo").addEventListener("change", e => {
+    const s = nextSong() || SAMPLE, v = videosFor(s).list.find(x => x.f === e.target.value);
+    if (v) { pendV = { key: songKey(s), v, hand: true }; updatePreview(); }
+  });
+  $("#rerollBtn").addEventListener("click", () => {
+    const s = nextSong() || SAMPLE, id = s.id || "";
+    avoidPattern = peekPattern(id);
+    const prevV = pendV && pendV.v ? pendV.v.f : null;
+    pOver = null; pending = null; pendV = null;
+    if (useVideo()) peekVideo(s, prevV);
+    updatePreview(); avoidPattern = -1;
+  });
   $("#tryBtn").addEventListener("click", () => {
     const s = nextSong() || SAMPLE;
-    pvPost({ type: "try", song: plainSong(s), pattern: peekPattern(s.id) });
+    pvPost({ type: "try", song: plainSong(s), pattern: peekPattern(s.id), video: peekVideo(s) });
     $(".pvbox").classList.add("trying"); clearTimeout($(".pvbox")._t); $(".pvbox")._t = setTimeout(() => $(".pvbox").classList.remove("trying"), 10600);
   });
   ["#s-layout", "#s-bg", "#s-auto", "#s-anim", "#s-idle", "#s-loop", "#s-font", "#s-wsize", "#s-tsize"].forEach(s => $(s).addEventListener("change", applyStage));
@@ -1391,8 +1510,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     if (shown) startIdle();
     const st = $("#stage");
     st.classList.toggle("lay-center", $("#s-layout").value === "center");
-    st.classList.remove("bg-grad", "bg-green", "bg-blue");
+    st.classList.remove("bg-grad", "bg-green", "bg-blue", "bg-video");
     const bg = $("#s-bg").value; if (bg !== "black") st.classList.add("bg-" + bg);
+    if (bg !== "video") vHide();
     tx("settings", { s: stageSettings() });
     if (!OUTPUT) { pvPost({ type: "settings", s: stageSettings() }); updatePreview(); }
     if (!OUTPUT) try { localStorage.setItem(LKEY + "-ui", JSON.stringify({ l: $("#s-layout").value, b: bg, a: $("#s-auto").value, m: $("#s-anim").value, i: $("#s-idle").value, lp: $("#s-loop").value, f: $("#s-font").value, ws: $("#s-wsize").value, ts: $("#s-tsize").value })); } catch (e) {}
@@ -1649,7 +1769,8 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     bulkDelete(() => true, "すべての曲");
   });
 
-  function pvStill(s) { if (s) pvSong = s; stopAll(); fillTelop(pvSong); $("#telop").classList.add("still"); }
+  let pvVid = null;
+  function pvStill(s) { if (s) pvSong = s; stopAll(); fillTelop(pvSong); $("#telop").classList.add("still"); vShow(pvVid); }
   let pvSong = { title: "曲名がここに大きく出ます", artist: "アーティスト名", work: "タイアップ作品名", type: "OP", year: "" };
   // ---------- two-screen wiring ----------
   if (PREVIEW) {
@@ -1663,8 +1784,8 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
       const m = ev.data || {};
       if (!m.pv) return;
       if (m.type === "settings") applySettings(m.s);
-      else if (m.type === "still") { pvSong = m.song; if (!shown) pvStill(); }
-      else if (m.type === "try") { pvSong = m.song; $("#telop").classList.remove("still"); stopAll(); shown = false; showSong(m.song, { test: true, pattern: m.pattern }); }
+      else if (m.type === "still") { pvSong = m.song; pvVid = m.video || null; if (!shown) pvStill(); }
+      else if (m.type === "try") { pvSong = m.song; pvVid = m.video || null; $("#telop").classList.remove("still"); stopAll(); shown = false; showSong(m.song, { test: true, pattern: m.pattern, video: pvVid }); }
     });
     window.parent.postMessage({ pv: 1, type: "ready" }, "*");
   } else if (OUTPUT) {
@@ -1698,14 +1819,15 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     if (bc) bc.onmessage = ev => {
       const m = ev.data || {};
       if (m.type === "settings") applySettings(m.s);
-      else if (m.type === "show") showSong(m.song, { pattern: m.pattern, remote: true });
+      else if (m.type === "show") showSong(m.song, { pattern: m.pattern, video: m.video || null, remote: true });
+      else if (m.type === "preload") { if (!shown) vPreload(m.video); }
       else if (m.type === "hide") hide();
       else if (m.type === "notice") applyNotice(m);
       else if (m.type === "announce") applyAnnounce(m);
       else if (m.type === "state") {
         applySettings(m.s);
         if (m.notice && m.notice.on) applyNotice(m.notice);
-        else { hideNotice(); if (m.song) showSong(m.song, { pattern: m.pattern, remote: true }); else hide(); }
+        else { hideNotice(); if (m.song) showSong(m.song, { pattern: m.pattern, video: m.video || null, remote: true }); else hide(); }
         applyAnnounce(m.announce || { on: false });
       }
     };
@@ -1723,7 +1845,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
       if (m.type === "ping" || m.type === "hello") { lastPing = Date.now(); setOut(); }
       if (m.type === "hello") tx("state", {
         s: stageSettings(),
-        song: liveOnOutput ? lastLiveSong : null, pattern: curPattern,
+        song: liveOnOutput ? lastLiveSong : null, pattern: curPattern, video: liveOnOutput ? curVideo : null,
         notice: { on: noticeShown, data: notice },
         announce: { on: announceShown, text: announceText(announceSrc), apos: notice.apos, apanel: notice.apanel } });
     };
@@ -1747,6 +1869,45 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
       const m = ev.data || {};
       if (m.pv && m.type === "ready" && ev.source === $("#pvFrame").contentWindow) { pvPost({ type: "settings", s: stageSettings() }); updatePreview(); }
     });
+  }
+
+  // ---------- effect video folder (can be anywhere, e.g. an external SSD) ----------
+  function renderVdir() {
+    if ($("#vPathIn") !== document.activeElement) $("#vPathIn").value = vcat.dir || "";
+    const c = $("#vCount");
+    c.textContent = !location.protocol.startsWith("http") ? "「あにてろを起動.vbs」から起動すると使えます"
+      : !vcat.ok ? "このフォルダが見つかりません（外付けSSDがつながっているか、場所が合っているか確認してください）"
+      : `曲ごとの動画 ${vcat.songs.length} 本 ・ 汎用 ${vcat.common.length} 本（「${vcat.common_folder || "汎用"}」フォルダ）`;
+    c.classList.toggle("warn", location.protocol.startsWith("http") && !vcat.ok);
+  }
+  async function loadVideos() {
+    if (OUTPUT) return;
+    if (!location.protocol.startsWith("http")) { renderVdir(); return; }
+    try { const r = await fetch("api/videos", { cache: "no-store" }); if (r.ok) vcat = await r.json(); } catch (e) {}
+    renderVdir(); pendV = null; updatePreview();
+  }
+  if (!OUTPUT) {
+    $("#vPick").addEventListener("click", async e => {
+      if (!location.protocol.startsWith("http")) { toast("「あにてろを起動.vbs」から起動すると使えます"); return; }
+      const b = e.currentTarget; b.disabled = true;
+      toast("フォルダを選ぶ画面を開きました（ほかのウィンドウの後ろに隠れていることがあります）");
+      try {
+        const j = await (await fetch("api/pickdir", { method: "POST" })).json();
+        if (!j.cancel) { vcat = j; renderVdir(); pendV = null; updatePreview(); toast(`動画フォルダを変更しました（曲ごと ${j.songs.length} 本・汎用 ${j.common.length} 本）`); }
+      } catch (err) { toast("フォルダを選べませんでした。場所を直接入力して Enter を押してください"); }
+      b.disabled = false;
+    });
+    $("#vReload").addEventListener("click", async () => { await loadVideos(); toast(vcat.ok ? `動画を読み直しました（曲ごと ${vcat.songs.length} 本・汎用 ${vcat.common.length} 本）` : "動画フォルダが見つかりません"); });
+    $("#vPathIn").addEventListener("keydown", async e => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      try {
+        const r = await fetch("api/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ videoDir: e.target.value.trim() }) });
+        vcat = await r.json(); e.target.blur(); renderVdir(); pendV = null; updatePreview();
+        toast(vcat.ok ? "動画フォルダを変更しました" : "そのフォルダが見つかりません");
+      } catch (err) { toast("保存できませんでした"); }
+    });
+    loadVideos();
   }
 
   // keep the local server alive while the app is open, and let it stop by itself when the console window is closed
