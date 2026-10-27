@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あにてろ</title>
+<title>Effect&amp;Telop VJ-System</title>
 <link rel="preload" href="fonts/biz-udpgothic-bold.woff" as="font" type="font/woff" crossorigin>
 <style>
 /* Fonts ship in the fonts folder so the telop looks the same offline. Every face is registered at the weight it
@@ -272,9 +272,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 <body>
 <div class="app">
   <header class="bar">
-    <div class="brand"><i></i>あにてろ</div>
+    <div class="brand"><i></i>Effect&amp;Telop VJ-System</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.2</span>
+    <span class="kbd" title="アプリのバージョン">V2.3</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -587,14 +587,14 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
         const a = await fetch("api/db", { method: "PUT", body: csv, headers: { "Content-Type": "text/plain; charset=utf-8" } });
         const b = await fetch("api/setlist", { method: "PUT", body: set, headers: { "Content-Type": "application/json" } });
         if (!a.ok || !b.ok) throw new Error("save");
-      }).catch(() => toast("songs.csv に保存できませんでした。アプリが止まっている可能性があります。いったん閉じて、あにてろを起動し直してください"));
+      }).catch(() => toast("songs.csv に保存できませんでした。アプリが止まっている可能性があります。いったん閉じて、Effect&Telop VJ-System を起動し直してください"));
     }, 250);
   }
 
   function setStatus() {
     const el = $("#status");
     if (store.mode === "server") { el.textContent = "songs.csv に保存"; el.className = "status cloud"; el.title = "フォルダ内の songs.csv がデータベースです。Excel で編集した後は「CSV を再読込」を押します"; }
-    else { el.textContent = "このブラウザに保存"; el.className = "status"; el.title = "「あにてろを起動.vbs」から起動すると songs.csv に保存されます"; }
+    else { el.textContent = "このブラウザに保存"; el.className = "status"; el.title = "「Effect&Telop VJ-System.vbs」から起動すると songs.csv に保存されます"; }
     $("#reloadBtn").hidden = store.mode !== "server";
   }
 
@@ -604,7 +604,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     }
     if (store.mode === "local") loadLocal();
     setStatus(); render(); loadHistory(); loadNotice();
-    if (store.mode === "local" && location.protocol === "file:") toast("「あにてろを起動.vbs」から起動すると、曲データが songs.csv に保存されます");
+    if (store.mode === "local" && location.protocol === "file:") toast("「Effect&Telop VJ-System.vbs」から起動すると、曲データが songs.csv に保存されます");
   }
 
   // ---------- rendering ----------
@@ -1470,7 +1470,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   });
   $("#reloadBtn").addEventListener("click", async () => {
     try { await loadServer(); setPos = -1; render(); toast(`songs.csv を読み込みました（${songs.length} 曲）`); }
-    catch (e) { toast("読み込めませんでした。アプリが止まっている可能性があります。いったん閉じて、あにてろを起動し直してください"); }
+    catch (e) { toast("読み込めませんでした。アプリが止まっている可能性があります。いったん閉じて、Effect&Telop VJ-System を起動し直してください"); }
   });
 
   $("#showBtn").addEventListener("click", () => showSong(byId(selectedId) || (!selectedId && manualSong) || null));
@@ -1815,7 +1815,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     });
     window.parent.postMessage({ pv: 1, type: "ready" }, "*");
   } else if (OUTPUT) {
-    document.title = "あにてろ（出力）";
+    document.title = "Effect&Telop VJ-System（出力）";
     document.body.classList.add("output");
     document.body.appendChild(sbox);
     sbox.classList.add("full");
@@ -1901,7 +1901,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   function renderVdir() {
     if ($("#vPathIn") !== document.activeElement) $("#vPathIn").value = vcat.dir || "";
     const c = $("#vCount");
-    c.textContent = !location.protocol.startsWith("http") ? "「あにてろを起動.vbs」から起動すると使えます"
+    c.textContent = !location.protocol.startsWith("http") ? "「Effect&Telop VJ-System.vbs」から起動すると使えます"
       : !vcat.ok ? "このフォルダが見つかりません（外付けSSDがつながっているか、場所が合っているか確認してください）"
       : `曲ごとの動画 ${vcat.songs.length} 本 ・ 汎用 ${vcat.common.length} 本（「${vcat.common_folder || "汎用"}」フォルダ）`;
     c.classList.toggle("warn", location.protocol.startsWith("http") && !vcat.ok);
@@ -1914,7 +1914,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   }
   if (!OUTPUT) {
     $("#vPick").addEventListener("click", async e => {
-      if (!location.protocol.startsWith("http")) { toast("「あにてろを起動.vbs」から起動すると使えます"); return; }
+      if (!location.protocol.startsWith("http")) { toast("「Effect&Telop VJ-System.vbs」から起動すると使えます"); return; }
       const b = e.currentTarget; b.disabled = true;
       toast("フォルダを選ぶ画面を開きました（ほかのウィンドウの後ろに隠れていることがあります）");
       try {

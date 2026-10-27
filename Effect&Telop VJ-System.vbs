@@ -1,4 +1,4 @@
-' Anitero - start without the black console window
+' Effect&Telop VJ-System - start without the black console window
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 d = fso.GetParentFolderName(WScript.ScriptFullName)

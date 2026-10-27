@@ -1,4 +1,4 @@
-# Anitero - local server (Windows PowerShell 5.1+)
+# Effect&Telop VJ-System - local server (Windows PowerShell 5.1+)
 # Serves index.html and reads/writes songs.csv in this folder. Localhost only.
 # -Hidden: started without a console window (start.vbs). Errors are shown in a message box, and the server stops
 # by itself when the app window is closed.
@@ -46,7 +46,7 @@ function Send-Text($res, [string]$text, [string]$type = 'text/plain; charset=utf
 function J([string]$s) { [regex]::Unescape($s) }
 function Fail([string]$msg) {
   if ($Hidden) {
-    try { Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show($msg, (J '\u3042\u306b\u3066\u308d')) } catch {}
+    try { Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show($msg, 'Effect&Telop VJ-System') } catch {}
   } else { Write-Host $msg; Read-Host 'Press Enter to close' }
   exit 1
 }
@@ -59,8 +59,8 @@ function Open-App([string]$u) {
   } catch { Write-Host "  Open $u in your browser." }
 }
 
-# Is Anitero already answering on this port? (quick: no proxy lookup, short timeout)
-function Test-Anitero([int]$p) {
+# Is this app already answering on this port? (quick: no proxy lookup, short timeout)
+function Test-Running([int]$p) {
   try {
     $rq = [System.Net.HttpWebRequest]::Create("http://localhost:$p/api/ping")
     $rq.Proxy = $null; $rq.Timeout = 700; $rq.ReadWriteTimeout = 700
@@ -155,22 +155,22 @@ function Send-File($req, $res, [string]$file, [string]$type) {
 
 # Find a free port
 $listener = $null
-# Try to open the port first (instant when it is free). Only when it is taken, check whether that is Anitero
+# Try to open the port first (instant when it is free). Only when it is taken, check whether that is this app
 # already running (started again from the shortcut): then just open another app window and finish.
 for ($p = $Port; $p -lt $Port + 20; $p++) {
   $l = New-Object System.Net.HttpListener
   $l.Prefixes.Add("http://localhost:$p/")
   try { $l.Start(); $listener = $l; $Port = $p; break } catch { $l.Close() }
-  if (Test-Anitero $p) { Open-App "http://localhost:$p/"; exit 0 }
+  if (Test-Running $p) { Open-App "http://localhost:$p/"; exit 0 }
 }
 if (-not $listener) {
   Fail ((J '\u8d77\u52d5\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u307b\u304b\u306e\u30a2\u30d7\u30ea\u3092\u9589\u3058\u3066\u304b\u3089\u3001\u3082\u3046\u4e00\u5ea6\u8d77\u52d5\u3057\u3066\u304f\u3060\u3055\u3044\u3002') + "`n(port 8765-8784)")
 }
 
 $url = "http://localhost:$Port/"
-try { $host.UI.RawUI.WindowTitle = "Anitero - $url" } catch {}
+try { $host.UI.RawUI.WindowTitle = "Effect&Telop VJ-System - $url" } catch {}
 Write-Host ''
-Write-Host "  Anitero is running:  $url"
+Write-Host "  Effect&Telop VJ-System is running:  $url"
 Write-Host '  Songs are saved to songs.csv in this folder.'
 Write-Host '  Keep this window open while you use the app. Close it to stop.'
 Write-Host '  (It also stops by itself a few seconds after the app window is closed.)'
