@@ -274,7 +274,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>Effect&amp;Telop VJ-System</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.4</span>
+    <span class="kbd" title="アプリのバージョン">V2.5</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -287,7 +287,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
         </h2>
         <div class="search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="q" type="search" placeholder="曲名・読み・アーティスト・作品名で検索" autocomplete="off">
+          <input id="q" type="search" placeholder="曲名・読み・アーティスト・作品名で検索（スペースで区切ると絞り込み）" autocomplete="off">
         </div>
         <div class="list" id="list"></div>
       </section>
@@ -608,10 +608,14 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   }
 
   // ---------- rendering ----------
+  // AND search: words separated by spaces (half- or full-width) must all be found in the song's
+  // title, reading, artist or work (in any of them; each word may match a different field)
+  const queryWords = () => String($("#q").value || "").split(/[\s\u3000]+/).map(norm).filter(Boolean);
+  const songText = s => [s.title, s.kana, s.artist, s.work, s.type, s.year].map(norm).join("|");
   function filtered() {
-    const q = norm($("#q").value);
+    const words = queryWords();
     const arr = songs.slice().sort((a, b) => norm(a.kana || a.title).localeCompare(norm(b.kana || b.title), "ja"));
-    return q ? arr.filter(s => norm([s.title, s.kana, s.artist, s.work, s.type, s.year].join(" ")).includes(q)) : arr;
+    return words.length ? arr.filter(s => { const t = songText(s); return words.every(w => t.includes(w)); }) : arr;
   }
   const metaLine = s => [s.artist, s.work].filter(Boolean).join(" ／ ");
 
