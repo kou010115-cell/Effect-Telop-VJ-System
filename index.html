@@ -125,8 +125,8 @@ header.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .intro .ib{display:flex;flex-direction:column;gap:2.4cqh;max-width:80cqw}
 .intro .ir{display:flex;flex-direction:column;gap:.5cqh}.intro .ir[hidden]{display:none}
 .intro .k{font-family:var(--f-tag),sans-serif;font-weight:400;font-size:2.3cqw;letter-spacing:.08em;color:var(--sun);text-shadow:0 0 .2em rgba(0,0,0,.7)}
-.intro .v{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(3.6cqw * var(--ws,1));line-height:1.3;color:#fff;overflow-wrap:anywhere;text-wrap:pretty;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
-.intro .v.t{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(5.2cqw * var(--ts,1));line-height:1.2}
+.intro .v{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(3.6cqw * var(--ws,1) * var(--fit,1));line-break:strict;text-wrap:balance;line-height:1.3;color:#fff;overflow-wrap:anywhere;text-wrap:pretty;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
+.intro .v.t{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-size:calc(5.2cqw * var(--ts,1) * var(--fit,1));line-height:1.2}
 .outstat{font-family:var(--f-body);font-size:11.5px;color:var(--mute);align-self:center;margin-right:4px}
 .outstat.ok{color:var(--live)}
 /* output window: only the stage, filling the window */
@@ -149,16 +149,16 @@ body.output.idlecursor{cursor:none}
 .stage[data-font="round"]{--tf:"AT M PLUS Rounded";--sf:"AT M PLUS Rounded"}
 .stage[data-font="mplus"]{--tf:"AT M PLUS 1p";--sf:"AT M PLUS 1p"}
 .stage[data-font="dela"]{--tf:"AT Dela Gothic One";--sf:"AT Zen Kaku Gothic"}
-.telop .work{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(3.8cqw * var(--ws,1));line-height:1.25;letter-spacing:.02em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
-.telop .title{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(5.2cqw * var(--ts,1));line-height:1.18;letter-spacing:.03em;color:#fff;text-wrap:balance;max-width:88cqw;text-shadow:0 0 .12em rgba(0,0,0,.55),0 .2cqw .7cqw rgba(0,0,0,.65);opacity:0}
-.telop .artist{display:flex;align-items:center;gap:1.2cqw;font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:2.9cqw;letter-spacing:.03em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75);opacity:0}
+.telop .work{font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(3.8cqw * var(--ws,1) * var(--fit,1));text-wrap:balance;line-break:strict;line-height:1.25;letter-spacing:.02em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75)}
+.telop .title{font-family:var(--tf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(5.2cqw * var(--ts,1) * var(--fit,1));line-height:1.18;letter-spacing:.03em;color:#fff;text-wrap:balance;max-width:88cqw;text-shadow:0 0 .12em rgba(0,0,0,.55),0 .2cqw .7cqw rgba(0,0,0,.65);opacity:0}
+.telop .artist{display:flex;align-items:center;text-wrap:balance;line-break:strict;gap:1.2cqw;font-family:var(--sf),"Yu Gothic UI","Meiryo",sans-serif;font-weight:400;font-size:calc(2.9cqw * var(--fit,1));letter-spacing:.03em;color:#fff;text-shadow:0 0 .14em rgba(0,0,0,.6),0 .15cqw .45cqw rgba(0,0,0,.75);opacity:0}
 .telop .artist::before{content:"";width:5cqw;height:.45cqw;background:linear-gradient(90deg,var(--sun),var(--flare))}
 
 /* center layout */
 .stage.lay-center .telop{left:8cqw;right:8cqw;bottom:auto;top:50%;transform:translateY(-50%);align-items:center;text-align:center;gap:1.8cqh}
 .stage.lay-center .telop .band{left:-8cqw;right:-8cqw;width:auto;top:-5cqh;bottom:-5cqh;background:rgba(6,7,12,.72);transform:scaleY(0);transform-origin:center}
-.stage.lay-center .telop .title{font-size:calc(6.4cqw * var(--ts,1))}
-.stage.lay-center .telop .work{font-size:calc(4.2cqw * var(--ws,1))}
+.stage.lay-center .telop .title{font-size:calc(6.4cqw * var(--ts,1) * var(--fit,1))}
+.stage.lay-center .telop .work{font-size:calc(4.2cqw * var(--ws,1) * var(--fit,1))}
 .stage.lay-center .telop .artist::after{content:"";width:5cqw;height:.45cqw;background:linear-gradient(90deg,var(--flare),var(--sun))}
 
 /* animation: patterns are driven from script (Web Animations); these are the shared pieces */
@@ -274,7 +274,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>Effect&amp;Telop VJ-System</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.3</span>
+    <span class="kbd" title="アプリのバージョン">V2.4</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -687,10 +687,106 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     $("#tWork").textContent = s.work || "";
     const tt = $("#tTitle");
     tt.classList.remove("caret");
-    tt.innerHTML = ((s.title ? `「${s.title}」` : "").match(/[\u3000-\u9fff\uff00-\uffef]|[^\s\u3000-\u9fff\uff00-\uffef]+|\s+/g) || [])
-      .map(tok => /^\s+$/.test(tok) ? `<span class="ch">${esc(tok)}</span>`
-        : `<span class="w">${[...tok].map(c => `<span class="ch">${esc(c)}</span>`).join("")}</span>`).join("");
+    // Words are kept whole; Japanese may break between characters, except that an opening bracket stays with the
+    // next character and closing brackets / small kana / 、。ー never start a line (so 「 and 」 are never left alone).
+    const toks = ((s.title ? `「${s.title}」` : "").match(/[\u3000-\u9fff\uff00-\uffef]|[^\s\u3000-\u9fff\uff00-\uffef]+|\s+/g) || []), groups = [];
+    toks.forEach(tok => {
+      const last = groups[groups.length - 1], sp = /^\s+$/.test(tok);
+      if (!sp && last && !last.sp && (NO_START.test(tok[0]) || NO_END.test(last.t[last.t.length - 1]))) last.t += tok;
+      else groups.push({ t: tok, sp });
+    });
+    tt.innerHTML = groups.map(g => g.sp ? `<span class="ch">${esc(g.t)}</span>`
+      : `<span class="w">${[...g.t].map(c => `<span class="ch">${esc(c)}</span>`).join("")}</span>`).join("");
     $("#tArtist").textContent = s.artist;
+    fitSoon();
+  }
+  const NO_START = /^[」』）)\]】〉》”’、。，．,.・ー〜～！？!?:：;；っゃゅょッャュョぁぃぅぇぉァィゥェォゎヮ々ゝゞヽヾ]/;
+  const NO_END = /[「『（(\[【〈《“‘]$/;
+  // Long names: shrink the line until it fits on one line (down to about 60%); only if it is still too long, wrap it.
+  // width of the text itself (measured off-screen, so motion in progress does not disturb it), and of the parts
+  // that do not shrink with it (the coloured lines beside the artist name and the gaps)
+  const MCTX = document.createElement("canvas").getContext("2d");
+  function textWidth(el) {
+    const cs = getComputedStyle(el), t = el.textContent;
+    MCTX.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    return MCTX.measureText(t).width + (parseFloat(cs.letterSpacing) || 0) * [...t].length;
+  }
+  function fixedWidth(el) {
+    const cs = getComputedStyle(el);
+    if (!/flex/.test(cs.display)) return 0;
+    const gap = parseFloat(cs.columnGap) || 0; let w = 0;
+    ["::before", "::after"].forEach(ps => { const p = getComputedStyle(el, ps); if (p.content && p.content !== "none" && p.display !== "none") w += (parseFloat(p.width) || 0) + gap; });
+    return w;
+  }
+  function fitText(el, avail, min) {
+    if (!el) return;
+    el.style.setProperty("--fit", "1");
+    if (!el.textContent.trim() || !(avail > 0)) return;
+    const tw = textWidth(el), fx = fixedWidth(el);
+    if (tw + fx <= avail - 6) return;
+    let k = Math.max(min, Math.floor((avail - 8 - fx) / tw * 1000) / 1000);
+    el.style.whiteSpace = "nowrap"; el.style.setProperty("--fit", String(k));
+    const one = el.offsetHeight;   // height of one line at this size
+    el.style.whiteSpace = "";
+    // check the real layout: if it still wraps (e.g. a font finished loading in between), shrink a little more
+    for (let n = 0; n < 12 && k > min && el.offsetHeight > one * 1.4; n++) { k = Math.max(min, +(k - .02).toFixed(3)); el.style.setProperty("--fit", String(k)); }
+  }
+  // The title: one line when it fits at 75% size or more; otherwise two lines of about equal length (split at a
+  // space when there is one), as large as they can be; past that, the browser wraps the rest at the smallest size.
+  function fitTitle(el, avail) {
+    if (!el) return;
+    el.querySelectorAll("br.lb").forEach(b => b.remove());
+    el.style.setProperty("--fit", "1");
+    if (!el.textContent.trim() || !(avail > 0)) return;
+    el.style.whiteSpace = "nowrap";
+    const parts = [...el.children], wd = parts.map(c => c.offsetWidth), total = wd.reduce((a, b) => a + b, 0);
+    el.style.whiteSpace = "";
+    if (total <= avail) return;
+    const k1 = (avail - 6) / total;
+    let best = null;
+    if (k1 < .75 && parts.length > 2) {
+      let left = 0; const cands = [];
+      for (let i = 0; i < parts.length - 1; i++) {
+        left += wd[i];
+        const sp = !parts[i].classList.contains("w"), l = sp ? left - wd[i] : left, r = total - left;
+        if (!l || !r) continue;
+        const k = Math.min(1, (avail - 6) / Math.max(l, r));
+        cands.push({ i, k, sp, score: k * breakQuality(parts[i].textContent, parts[i + 1].textContent, sp) });
+      }
+      best = cands.reduce((a, c) => (!a || c.score > a.score ? c : a), null);
+    }
+    if (best && best.k > k1) {
+      parts[best.i].insertAdjacentHTML("afterend", '<br class="lb">');
+      el.style.setProperty("--fit", String(Math.max(.6, Math.floor(best.k * 1000) / 1000)));
+    } else el.style.setProperty("--fit", String(Math.max(.6, Math.floor(k1 * 1000) / 1000)));
+  }
+  // how natural a line break is between a and b: spaces and the end of a Japanese phrase (after a particle) are good,
+  // the middle of a katakana word or of a kanji compound is poor
+  function breakQuality(a, b, sp) {
+    if (sp) return 1.05;
+    const x = a.slice(-1), y = b.slice(0, 1);
+    const kind = c => /[\u3041-\u309f]/.test(c) ? "h" : /[\u30a0-\u30ff\uff66-\uff9f]/.test(c) ? "k" : /[\u4e00-\u9fff々]/.test(c) ? "c" : /[A-Za-z0-9]/.test(c) ? "l" : "o";
+    const p = kind(x), q = kind(y);
+    if (p === "h" && q !== "h") return 1;
+    if (p === "o" || q === "o") return .97;
+    if (p === "k" && q === "k") return .7;
+    if (p === "c" && q === "c") return .85;
+    if (p === "h" && q === "h") return .88;
+    return .93;
+  }
+  // fit now, and again once any web font used by the new text has finished loading (its width can change)
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => fitAll());
+  function fitSoon() {
+    fitAll();
+    if (document.fonts && document.fonts.ready) requestAnimationFrame(() => document.fonts.ready.then(fitAll));
+    setTimeout(fitAll, 400);
+  }
+  function fitAll() {
+    const st = $("#stage"), W = st.clientWidth, t = $("#telop");
+    if (!W) return;
+    const tw = Math.min(t.clientWidth || W * .9, W * .88);
+    fitTitle($("#tTitle"), tw); fitText($("#tWork"), tw, .6); fitText($("#tArtist"), tw, .6);
+    ["#iWork", "#iTitle", "#iArtist"].forEach(id => fitText($(id), W * .8, .6));
   }
   // ---------- motion patterns (text only, using the whole screen) ----------
   // Every animation started on the stage is recorded here. Browsers silently retire finished animations that a newer
@@ -972,7 +1068,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 
     { name: "デコード",   // random orange letters lock into the real text from left to right
       in: e => {
-        const n = e.chars.length, dur = 300 + n * 75;
+        const n = e.chars.length, dur = 300 + Math.min(1500, n * 75);
         const out = [A(e.title, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" }), scrambleChars(e, dur, 0)];
         const d = dur * .55;
         out.push(A(e.meta, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: d, easing: "linear" }), scrambleText(e.work, 700, d));
@@ -1247,7 +1343,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   }
   if (window.ResizeObserver) { const ro = new ResizeObserver(syncLeft); ro.observe($("#stageCard")); ro.observe($("#pvCard")); ro.observe($("#manualCard")); }
   addEventListener("resize", syncLeft); syncLeft();
-  if (window.ResizeObserver) new ResizeObserver(() => { if (noticeShown) fitNotice(); if (announceShown) fitAnnounce(); }).observe($("#stage"));
+  if (window.ResizeObserver) new ResizeObserver(() => { if (noticeShown) fitNotice(); if (announceShown) fitAnnounce(); fitAll(); }).observe($("#stage"));
 
   // ---------- effect videos (full-screen background behind the telop) ----------
   // Two <video> layers: the next video fades in on top of the current one, so there is never a black gap.
@@ -1376,6 +1472,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     $("#iWork").textContent = s.work || ""; $("#irWork").hidden = !s.work;
     $("#iTitle").textContent = s.title || "";
     $("#iArtist").textContent = s.artist || ""; $("#irArtist").hidden = !s.artist;
+    fitSoon();
   }
   const playIntro = () => $("#intro").animate([
     { opacity: 0, transform: "translateY(1.2cqh)", filter: "blur(.3cqw)" },
@@ -1533,6 +1630,8 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     $("#stage").style.setProperty("--ts", $("#s-tsize").value);
     if (document.fonts) document.fonts.load(`40px "${getComputedStyle($("#stage")).getPropertyValue("--tf").trim().replace(/"/g, "")}"`).catch(() => {});
     if (shown) startIdle();
+    fitAll();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
     const st = $("#stage");
     st.classList.toggle("lay-center", $("#s-layout").value === "center");
     st.classList.remove("bg-grad", "bg-green", "bg-blue", "bg-video", "mode-video");
