@@ -274,7 +274,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>Effect&amp;Telop VJ-System</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.5</span>
+    <span class="kbd" title="アプリのバージョン">V2.6</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
   </header>
@@ -1617,6 +1617,11 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     avoidPattern = peekPattern(id);
     const prevV = pendV && pendV.v ? pendV.v.f : null;
     pOver = null; pending = null; pendV = null;
+    // in random mode always land on a different motion (also when the same song is shown again, which otherwise keeps its motion)
+    if ($("#s-anim").value === "random" && PATTERNS.length > 1) {
+      let i; do { i = Math.floor(Math.random() * PATTERNS.length); } while (i === avoidPattern);
+      pOver = { key: id, i };
+    }
     if (useVideo()) peekVideo(s, prevV);
     updatePreview(); avoidPattern = -1;
   });
@@ -1664,8 +1669,42 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   $("#fsBtn").addEventListener("click", enterFull);
   $("#exitFs").addEventListener("click", exitFull);
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) sbox.classList.remove("full"); });
+  // ---------- left-hand device / macro keypad: Ctrl+Alt+key ----------
+  // These work even while typing in a field (search box etc.), so a keypad button never types a letter by mistake.
+  // Not Ctrl+Alt+arrow keys: on some PCs (Intel graphics) those rotate the screen.
+  const MODES = [["both", "テロップ＋エフェクト動画"], ["telop", "テロップのみ"], ["video", "エフェクト動画のみ"]];
+  function moveSelection(step) {
+    const arr = filtered(); if (!arr.length) return;
+    let i = arr.findIndex(s => s.id === selectedId);
+    i = i < 0 ? (step > 0 ? 0 : arr.length - 1) : Math.max(0, Math.min(arr.length - 1, i + step));
+    select(arr[i].id);
+    const row = [...document.querySelectorAll("#list .row")].find(r => r.dataset.id === arr[i].id);
+    if (row) row.scrollIntoView({ block: "nearest" });
+  }
+  const PAD = {
+    KeyS: () => { const s = nextSong() || byId(setlist[setPos]); if (s) showSong(s); else toast("表示する曲を選んでください"); },
+    KeyH: () => { if (noticeShown) hideNotice(); hide(); },
+    KeyT: () => $("#tryBtn").click(),
+    KeyR: () => $("#rerollBtn").click(),
+    Digit1: () => toggleAnnounce("p1"), Numpad1: () => toggleAnnounce("p1"),
+    Digit2: () => toggleAnnounce("p2"), Numpad2: () => toggleAnnounce("p2"),
+    KeyN: () => { noticeShown ? hideNotice() : showNotice(); },
+    KeyM: () => { const i = MODES.findIndex(m => m[0] === dispMode()), m = MODES[(i + 1) % MODES.length]; $("#s-bg").value = m[0]; applyStage(); toast(`表示モード：${m[1]}`); },
+    KeyU: () => moveSelection(-1),
+    KeyD: () => moveSelection(1),
+    KeyF: () => { if (sbox.classList.contains("full")) exitFull(); const q = $("#q"); q.focus(); q.select(); q.scrollIntoView({ block: "nearest" }); },
+  };
+  document.addEventListener("keydown", e => {
+    if (OUTPUT || !e.ctrlKey || !e.altKey || e.shiftKey || e.metaKey) return;
+    const f = PAD[e.code]; if (!f) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat && !/^Key[UD]$/.test(e.code)) return;   // holding a button does not toggle on and off
+    f();
+  }, true);
+
   document.addEventListener("keydown", e => {
     if (OUTPUT) return;   // the output window is not operated directly
+    if (e.ctrlKey && e.altKey) return;   // handled above
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
     const full = sbox.classList.contains("full");
     if (typing && !full) return;
