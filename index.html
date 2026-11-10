@@ -199,6 +199,20 @@ body.output.idlecursor{cursor:none}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .arow{display:flex;gap:8px;align-items:stretch}.arow input{flex:1 1 auto;min-width:0}.arow .btn{flex:0 0 auto;white-space:nowrap}
 .settings[hidden]{display:none}
+.gear{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer}
+.gear:hover{border-color:var(--sun);color:var(--sun)}
+.setov{position:fixed;inset:0;z-index:60}.setov[hidden]{display:none}
+.setback{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.setpanel{position:absolute;top:0;right:0;bottom:0;width:min(860px,94vw);background:var(--night);border-left:1px solid var(--line);display:flex;flex-direction:column;box-shadow:-16px 0 48px rgba(0,0,0,.45);animation:setin .18s ease-out}
+@keyframes setin{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.sethead{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sethead h2{margin:0;font-size:16px}
+.settabs{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+.settabs button{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mute);font-size:13px;font-weight:500;cursor:pointer}
+.settabs button.on{background:var(--sun);border-color:var(--sun);color:#1a1004}
+.setbody{flex:1;overflow:auto;padding:16px 18px;display:block}
+.setpage{display:flex;flex-direction:column;gap:14px}.setpage[hidden]{display:none}
+.setpage #setToggle{display:none}
 .vbg{position:absolute;inset:0;z-index:0;pointer-events:none;background:#000;display:none}
 .stage.bg-video{background:#000}.stage.bg-video .vbg{display:block}
 .vbg video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .85s ease}
@@ -274,10 +288,37 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   <header class="bar">
     <div class="brand"><i></i>Effect&amp;Telop VJ-System</div>
     <span class="status" id="status">読み込み中…</span>
-    <span class="kbd" title="アプリのバージョン">V2.6</span>
+    <span class="kbd" title="アプリのバージョン">V2.7</span>
     <span class="spacer"></span>
     <span class="kbd">全画面中 <b>Space</b>表示/消去 <b>N</b>注意事項 <b>A</b>案内 <b>1</b><b>2</b>固定案内 <b>Esc</b>戻る</span>
+    <button class="gear" id="setOpen" type="button" title="設定（表示・動画・案内・注意事項・曲データ）" aria-label="設定を開く" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.5 1.8 3 0 3.4a1.7 1.7 0 0 0-1 2.6c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.8-2.9 1.8-3.4 0a1.7 1.7 0 0 0-2.5-1c-1.6.9-3.3-.9-2.4-2.4a1.7 1.7 0 0 0-1.1-2.6c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 0 0 1.1-2.5c-.9-1.6.8-3.3 2.4-2.4a1.7 1.7 0 0 0 2.5-1.1z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>設定</span>
+    </button>
   </header>
+
+  <!-- settings screen: everything that is not needed during the show lives here (opened with the gear button) -->
+  <div class="setov" id="setov" hidden>
+    <div class="setback" id="setBack"></div>
+    <aside class="setpanel" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+      <div class="sethead">
+        <h2 id="setTitle">設定</h2>
+        <nav class="settabs" id="setTabs" role="tablist">
+          <button type="button" role="tab" data-tab="disp">表示・動画</button>
+          <button type="button" role="tab" data-tab="ann">案内・アナウンス</button>
+          <button type="button" role="tab" data-tab="notice">注意事項</button>
+          <button type="button" role="tab" data-tab="data">曲データ</button>
+        </nav>
+        <button class="btn sm" id="setClose" type="button" title="閉じる（Esc）">✕ 閉じる</button>
+      </div>
+      <div class="setbody">
+        <div class="setpage" data-page="disp"></div>
+        <div class="setpage" data-page="ann" hidden></div>
+        <div class="setpage" data-page="notice" hidden></div>
+        <div class="setpage" data-page="data" hidden></div>
+      </div>
+    </aside>
+  </div>
 
   <div class="grid">
     <div class="col colL">
@@ -1299,7 +1340,7 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     const text = announceText(src);
     if (!text) {
       if (src === "free") { toast("案内の文を入力してください"); $("#a-text").focus(); }
-      else { toast(`パターン${src.slice(1)}の文言が空です。「固定の案内の文言を編集」で入力してください`); $(".presetEd").open = true; $(`#a-${src}`).focus(); }
+      else { toast(`パターン${src.slice(1)}の文言が空です。設定の「固定の案内の文言を編集」で入力してください`); openSettings("ann"); $(".presetEd").open = true; $(`#a-${src}`).focus(); }
       return;
     }
     hideNotice();
@@ -1669,6 +1710,33 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   $("#fsBtn").addEventListener("click", enterFull);
   $("#exitFs").addEventListener("click", exitFull);
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) sbox.classList.remove("full"); });
+  // ---------- settings screen (gear button, top right) ----------
+  const SETPAGES = { disp: ["#setCard"], ann: ["#announceCard"], notice: ["#noticeCard"], data: ["#ioCard", "#batchCard"] };
+  if (!OUTPUT) {
+    $("#ioBox").closest("section").id = "ioCard";
+    Object.entries(SETPAGES).forEach(([k, ids]) => ids.forEach(id => { const el = $(id); if (el) $(`.setpage[data-page="${k}"]`).appendChild(el); }));
+    $("#setCard > h2").firstChild.textContent = "表示・動き・エフェクト動画 ";
+    setSettingsVisible(true);
+    $("#ioBox").open = true;
+  }
+  let setTab = "disp";
+  try { setTab = localStorage.getItem(LKEY + "-settab") || "disp"; } catch (e) {}
+  function showSetTab(k) {
+    if (!SETPAGES[k]) k = "disp";
+    setTab = k;
+    document.querySelectorAll("#setTabs button").forEach(b => { const on = b.dataset.tab === k; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+    document.querySelectorAll(".setpage").forEach(p => p.hidden = p.dataset.page !== k);
+    try { localStorage.setItem(LKEY + "-settab", k); } catch (e) {}
+  }
+  function openSettings(k) { $("#setov").hidden = false; showSetTab(k || setTab); $("#setClose").focus(); }
+  function closeSettings() { $("#setov").hidden = true; $("#setOpen").focus(); }
+  const settingsOpen = () => !$("#setov").hidden;
+  $("#setOpen").addEventListener("click", () => openSettings());
+  $("#setClose").addEventListener("click", closeSettings);
+  $("#setBack").addEventListener("click", closeSettings);
+  $("#setTabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) showSetTab(b.dataset.tab); });
+  showSetTab(setTab);
+
   // ---------- left-hand device / macro keypad: Ctrl+Alt+key ----------
   // These work even while typing in a field (search box etc.), so a keypad button never types a letter by mistake.
   // Not Ctrl+Alt+arrow keys: on some PCs (Intel graphics) those rotate the screen.
@@ -1707,7 +1775,9 @@ details.tool .inner{display:flex;flex-direction:column;gap:10px;margin-top:12px}
     if (e.ctrlKey && e.altKey) return;   // handled above
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
     const full = sbox.classList.contains("full");
+    if (e.key === "Escape" && settingsOpen()) { closeSettings(); return; }
     if (typing && !full) return;
+    if (e.key === "Escape" && settingsOpen()) { closeSettings(); return; }
     if (e.key === "Escape" && full) { exitFull(); return; }
     if (e.key === " ") { e.preventDefault(); if (noticeShown) hideNotice(); else if (shown) hide(); else showSong(byId(selectedId) || byId(setlist[setPos]) || manualSong); }
     else if (e.key === "n" || e.key === "N") { e.preventDefault(); noticeShown ? hideNotice() : showNotice(); }
